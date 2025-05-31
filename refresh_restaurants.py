@@ -7,6 +7,8 @@ from datetime import datetime
 import overpy
 import geocoder  # for address normalization
 from dotenv import load_dotenv
+from chain_blocklist import CHAIN_BLOCKLIST
+from smb_restaurants_data import smb_restaurants_data
 
 load_dotenv()
 
@@ -18,8 +20,9 @@ if not google_api_key:
     print("Error: GOOGLE_API_KEY not found. Please set the environment variable.")
     exit(1)
 GOOGLE_API_KEY = google_api_key  # for Google Places
-DOORDASH_API_KEY = os.getenv("DOORDASH_API_KEY")  # if you have one
-UBER_EATS_API_KEY = os.getenv("UBER_EATS_API_KEY")  # if available
+# TODO: Delivery app API integration deferred. Focusing on core data and free methods.
+# DOORDASH_API_KEY = os.getenv("DOORDASH_API_KEY")  # if you have one
+# UBER_EATS_API_KEY = os.getenv("UBER_EATS_API_KEY")  # if available
 OUTPUT_CSV = "master_restaurants.csv"
 GOV_CSV_FILES = {
     # paths to local copies of government CSVs
@@ -27,7 +30,6 @@ GOV_CSV_FILES = {
     "thurston_county": "thurston_business_licenses.csv",
 }
 OVERPASS_ENDPOINT = "https://overpass-api.de/api/interpreter"
-SEARCH_ZIP_CODES = ["98501", "98502", "98506", "98512", "98516"]  # adjust for your territory
 TARGET_OLYMPIA_ZIPS = [
     "98330",
     "98360",
@@ -138,6 +140,18 @@ def fetch_google_places(radius=50000, types_list=None, keyword_list=None):
                         }
                         all_rows.append(row)
 
+                        name_lower = (row["name"] or "").lower()
+                        if not any(block in name_lower for block in CHAIN_BLOCKLIST):
+                            smb_restaurants_data.append({
+                                "Name": row["name"],
+                                "Formatted Address": row["address"],
+                                "Place ID": row["place_id"],
+                                "Rating": result.get("rating"),
+                                "User Ratings Total": result.get("user_ratings_total"),
+                                "Business Status": result.get("business_status"),
+                                "Zip Code": z,
+                            })
+
                     if "next_page_token" in data:
                         next_token = data["next_page_token"]
                         time.sleep(2)
@@ -203,67 +217,15 @@ def fetch_gov_csvs():
 # ------------------------------------------------------------------------------
 # 3) DELIVERY-APP SCRAPERS
 # ------------------------------------------------------------------------------
+# TODO: Delivery app API integration deferred. Focusing on core data and free methods.
 def fetch_doordash(zip_code_list=None):
-    """
-    Skeleton for DoorDash scraping. Adjust the URL/payload after inspecting network calls.
-    Returns name, address, lat, lon, phone, source, last_seen.
-    """
-    all_rows = []
-    if zip_code_list is None:
-        zip_code_list = TARGET_OLYMPIA_ZIPS
-
-    for z in zip_code_list:
-        url = f"https://api.doordash.com/v2/search/store/?location={z},WA&limit=100"
-        headers = {
-            "Accept": "application/json",
-            "Authorization": f"Bearer {DOORDASH_API_KEY}",
-        }
-        resp = requests.get(url, headers=headers)
-        data = resp.json()
-        for shop in data.get("stores", []):
-            row = {
-                "name": shop.get("name"),
-                "address": shop.get("address"),
-                "lat": shop.get("latitude"),
-                "lon": shop.get("longitude"),
-                "phone": shop.get("phone_number"),
-                "source": "doordash",
-                "last_seen": datetime.utcnow(),
-            }
-            all_rows.append(row)
-        time.sleep(1)
-
-    return pd.DataFrame(all_rows)
+    """DoorDash integration disabled."""
+    return pd.DataFrame()
 
 
 def fetch_uber_eats(zip_code_list=None):
-    """
-    Skeleton for Uber Eats scraping. Adjust URL/payload after inspecting network calls.
-    Returns name, address, lat, lon, phone, source, last_seen.
-    """
-    all_rows = []
-    if zip_code_list is None:
-        zip_code_list = TARGET_OLYMPIA_ZIPS
-
-    for z in zip_code_list:
-        url = f"https://www.ubereats.com/api/getFeed?obtainBy=restaurant&address={z}%2C%20WA"
-        headers = {"Accept": "application/json", "User-Agent": "Mozilla/5.0"}
-        resp = requests.get(url, headers=headers)
-        data = resp.json()
-        for item in data.get("restaurants", []):
-            row = {
-                "name": item.get("name"),
-                "address": item.get("address", {}).get("formatted"),
-                "lat": item.get("address", {}).get("latitude"),
-                "lon": item.get("address", {}).get("longitude"),
-                "phone": item.get("phone"),
-                "source": "ubereats",
-                "last_seen": datetime.utcnow(),
-            }
-            all_rows.append(row)
-        time.sleep(1)
-
-    return pd.DataFrame(all_rows)
+    """Uber Eats integration disabled."""
+    return pd.DataFrame()
 
 
 # ------------------------------------------------------------------------------
@@ -369,19 +331,20 @@ def main():
     df_gov = fetch_gov_csvs()
     print(f"→ {len(df_gov)} rows from government sources")
 
-    print("Scraping DoorDash…")
-    df_dd = fetch_doordash()
-    print(f"→ {len(df_dd)} rows from DoorDash")
+    # TODO: Delivery app API integration deferred. Focusing on core data and free methods.
+    # print("Scraping DoorDash…")
+    # df_dd = fetch_doordash()
+    # print(f"→ {len(df_dd)} rows from DoorDash")
 
-    print("Scraping Uber Eats…")
-    df_ue = fetch_uber_eats()
-    print(f"→ {len(df_ue)} rows from Uber Eats")
+    # print("Scraping Uber Eats…")
+    # df_ue = fetch_uber_eats()
+    # print(f"→ {len(df_ue)} rows from Uber Eats")
 
     print("Querying OpenStreetMap…")
     df_osm = fetch_osm()
     print(f"→ {len(df_osm)} rows from OSM")
 
-    master = pd.concat([df_google, df_gov, df_dd, df_ue, df_osm], ignore_index=True, sort=False)
+    master = pd.concat([df_google, df_gov, df_osm], ignore_index=True, sort=False)
     master["address"] = master["address"].fillna("")
     master["name"] = master["name"].fillna("")
 
