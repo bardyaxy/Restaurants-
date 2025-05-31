@@ -93,12 +93,13 @@ TARGET_OLYMPIA_ZIPS = [
 # ------------------------------------------------------------------------------
 # 1) GOOGLE PLACES FETCHER
 # ------------------------------------------------------------------------------
-def fetch_google_places(radius=50000, types_list=None, keyword_list=None):
-    """Fetch restaurant data from Google Places using Text Search."""
-    if types_list is None:
-        types_list = ["restaurant", "bar", "cafe", "bakery", "food"]
-    if keyword_list is None:
-        keyword_list = ["taco", "pizza", "deli", "pub", "bbq"]
+def fetch_google_places():
+    """Fetch restaurant data using Google Places Text Search.
+
+    For each ZIP in ``TARGET_OLYMPIA_ZIPS`` the query
+    "restaurants in {ZIP} WA" is sent and results are paged until all
+    pages are retrieved.
+    """
 
     all_rows = []
     for z in TARGET_OLYMPIA_ZIPS:
