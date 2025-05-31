@@ -8,6 +8,9 @@ from datetime import datetime
 from rapidfuzz import fuzz, process
 import overpy
 import geocoder  # for address normalization
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # ------------------------------------------------------------------------------
 # CONFIGURATION: fill in your API keys and file locations here
