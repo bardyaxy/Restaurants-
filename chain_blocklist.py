@@ -1,0 +1,26 @@
+"""Common chain restaurants that should be excluded from local listings."""
+
+CHAIN_BLOCKLIST = [
+    "starbucks",
+    "mcdonald's",
+    "subway",
+    "burger king",
+    "taco bell",
+    "wendy's",
+    "kfc",
+    "dunkin'",
+    "pizza hut",
+    "domino's pizza",
+    "little caesars",
+    "chipotle mexican grill",
+    "panera bread",
+    "chick-fil-a",
+    "panda express",
+    "arby's",
+    "dairy queen",
+    "applebee's",
+    "olive garden",
+    "red lobster",
+    "outback steakhouse",
+    "buffalo wild wings",
+]
