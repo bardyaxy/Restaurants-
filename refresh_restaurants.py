@@ -93,8 +93,10 @@ TARGET_OLYMPIA_ZIPS = [
 # ------------------------------------------------------------------------------
 def fetch_google_places(radius=50000, types_list=None, keyword_list=None):
     """
-    Query Google Places API for restaurant, cafe, bakery, etc. within each ZIP’s area.
-    Returns a DataFrame with name, address, lat, lon, place_id, phone, source, last_seen.
+    Query Google Places API for various place ``types`` and ``keywords`` within each ZIP’s area.
+    For every combination of ``place_type`` and ``keyword`` the API is queried using
+    the ``keyword`` parameter. Results are combined into a single DataFrame with
+    columns: name, address, lat, lon, place_id, phone, source and last_seen.
     """
     if types_list is None:
         types_list = ["restaurant", "bar", "cafe", "bakery", "food"]
@@ -111,36 +113,38 @@ def fetch_google_places(radius=50000, types_list=None, keyword_list=None):
             continue
 
         for place_type in types_list:
-            params = {
-                "key": GOOGLE_API_KEY,
-                "location": f"{center_lat},{center_lng}",
-                "radius": radius,
-                "type": place_type,
-            }
-            url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json"
-            while True:
-                resp = requests.get(url, params=params)
-                data = resp.json()
-                for result in data.get("results", []):
-                    row = {
-                        "name": result.get("name"),
-                        "address": result.get("vicinity") or result.get("formatted_address"),
-                        "lat": result["geometry"]["location"]["lat"],
-                        "lon": result["geometry"]["location"]["lng"],
-                        "place_id": result.get("place_id"),
-                        "phone": None,
-                        "source": "google_places",
-                        "last_seen": datetime.utcnow(),
-                    }
-                    all_rows.append(row)
+            for keyword in keyword_list:
+                params = {
+                    "key": GOOGLE_API_KEY,
+                    "location": f"{center_lat},{center_lng}",
+                    "radius": radius,
+                    "type": place_type,
+                    "keyword": keyword,
+                }
+                url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json"
+                while True:
+                    resp = requests.get(url, params=params)
+                    data = resp.json()
+                    for result in data.get("results", []):
+                        row = {
+                            "name": result.get("name"),
+                            "address": result.get("vicinity") or result.get("formatted_address"),
+                            "lat": result["geometry"]["location"]["lat"],
+                            "lon": result["geometry"]["location"]["lng"],
+                            "place_id": result.get("place_id"),
+                            "phone": None,
+                            "source": "google_places",
+                            "last_seen": datetime.utcnow(),
+                        }
+                        all_rows.append(row)
 
-                if "next_page_token" in data:
-                    next_token = data["next_page_token"]
-                    time.sleep(2)
-                    params["pagetoken"] = next_token
-                    continue
-                else:
-                    break
+                    if "next_page_token" in data:
+                        next_token = data["next_page_token"]
+                        time.sleep(2)
+                        params["pagetoken"] = next_token
+                        continue
+                    else:
+                        break
 
     return pd.DataFrame(all_rows)
 
