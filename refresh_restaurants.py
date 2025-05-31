@@ -94,12 +94,7 @@ TARGET_OLYMPIA_ZIPS = [
 # 1) GOOGLE PLACES FETCHER
 # ------------------------------------------------------------------------------
 def fetch_google_places(radius=50000, types_list=None, keyword_list=None):
-    """
-    Query Google Places API for various place ``types`` and ``keywords`` within each ZIP’s area.
-    For every combination of ``place_type`` and ``keyword`` the API is queried using
-    the ``keyword`` parameter. Results are combined into a single DataFrame with
-    columns: name, address, lat, lon, place_id, phone, source and last_seen.
-    """
+    """Fetch restaurant data from Google Places using Text Search."""
     if types_list is None:
         types_list = ["restaurant", "bar", "cafe", "bakery", "food"]
     if keyword_list is None:
@@ -107,58 +102,48 @@ def fetch_google_places(radius=50000, types_list=None, keyword_list=None):
 
     all_rows = []
     for z in TARGET_OLYMPIA_ZIPS:
-        g = geocoder.osm(z + ", WA, USA")
-        if g.ok:
-            center_lat, center_lng = g.latlng
-        else:
-            print(f"Failed to geocode ZIP {z}")
-            continue
+        params = {
+            "key": GOOGLE_API_KEY,
+            "query": f"restaurants in {z} WA",
+        }
+        url = "https://maps.googleapis.com/maps/api/place/textsearch/json"
 
-        for place_type in types_list:
-            for keyword in keyword_list:
-                params = {
-                    "key": GOOGLE_API_KEY,
-                    "location": f"{center_lat},{center_lng}",
-                    "radius": radius,
-                    "type": place_type,
-                    "keyword": keyword,
+        while True:
+            resp = requests.get(url, params=params)
+            data = resp.json()
+
+            for result in data.get("results", []):
+                row = {
+                    "name": result.get("name"),
+                    "address": result.get("formatted_address") or result.get("vicinity"),
+                    "lat": result["geometry"]["location"]["lat"],
+                    "lon": result["geometry"]["location"]["lng"],
+                    "place_id": result.get("place_id"),
+                    "phone": None,
+                    "source": "google_places",
+                    "last_seen": datetime.utcnow(),
                 }
-                url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json"
-                while True:
-                    resp = requests.get(url, params=params)
-                    data = resp.json()
-                    for result in data.get("results", []):
-                        row = {
-                            "name": result.get("name"),
-                            "address": result.get("vicinity") or result.get("formatted_address"),
-                            "lat": result["geometry"]["location"]["lat"],
-                            "lon": result["geometry"]["location"]["lng"],
-                            "place_id": result.get("place_id"),
-                            "phone": None,
-                            "source": "google_places",
-                            "last_seen": datetime.utcnow(),
-                        }
-                        all_rows.append(row)
+                all_rows.append(row)
 
-                        name_lower = (row["name"] or "").lower()
-                        if not any(block in name_lower for block in CHAIN_BLOCKLIST):
-                            smb_restaurants_data.append({
-                                "Name": row["name"],
-                                "Formatted Address": row["address"],
-                                "Place ID": row["place_id"],
-                                "Rating": result.get("rating"),
-                                "User Ratings Total": result.get("user_ratings_total"),
-                                "Business Status": result.get("business_status"),
-                                "Zip Code": z,
-                            })
+                name_lower = (row["name"] or "").lower()
+                if not any(block in name_lower for block in CHAIN_BLOCKLIST):
+                    smb_restaurants_data.append({
+                        "Name": row["name"],
+                        "Formatted Address": row["address"],
+                        "Place ID": row["place_id"],
+                        "Rating": result.get("rating"),
+                        "User Ratings Total": result.get("user_ratings_total"),
+                        "Business Status": result.get("business_status"),
+                        "Zip Code": z,
+                    })
 
-                    if "next_page_token" in data:
-                        next_token = data["next_page_token"]
-                        time.sleep(2)
-                        params["pagetoken"] = next_token
-                        continue
-                    else:
-                        break
+            if "next_page_token" in data:
+                next_token = data["next_page_token"]
+                time.sleep(2)
+                params = {"key": GOOGLE_API_KEY, "pagetoken": next_token}
+                continue
+            else:
+                break
 
     return pd.DataFrame(all_rows)
 
