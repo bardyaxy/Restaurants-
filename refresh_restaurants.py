@@ -5,8 +5,15 @@ import requests
 import pandas as pd
 from datetime import datetime
 import overpy
-# import geocoder # Kept for fetch_gov_csvs, but not needed for fetch_google_places anymore
-from dotenv import load_dotenv
+try:
+    import geocoder  # Used in fetch_gov_csvs for geocoding fallback
+except ImportError:
+    geocoder = None
+try:
+    from dotenv import load_dotenv
+except ImportError:
+    def load_dotenv(*args, **kwargs):
+        pass
 from chain_blocklist import CHAIN_BLOCKLIST # Make sure chain_blocklist.py exists and defines CHAIN_BLOCKLIST = [...]
 from smb_restaurants_data import smb_restaurants_data # Make sure smb_restaurants_data.py exists and defines smb_restaurants_data = []
 
@@ -30,6 +37,21 @@ OVERPASS_ENDPOINT = "https://overpass-api.de/api/interpreter"
 TARGET_OLYMPIA_ZIPS = ["98501", "98502", "98506"] # Kept short for testing
 
 # ------------------------------------------------------------------------------
+# NETWORK CHECK
+# ------------------------------------------------------------------------------
+def check_network(url: str = "https://www.google.com", timeout: int = 5) -> bool:
+    """Return ``True`` if network is reachable, otherwise ``False``."""
+    try:
+        requests.head(url, timeout=timeout)
+        return True
+    except requests.RequestException:
+        return False
+
+NETWORK_AVAILABLE = check_network()
+if not NETWORK_AVAILABLE:
+    print("[WARNING] Network unreachable. Online data sources will be skipped.")
+
+# ------------------------------------------------------------------------------
 # 1) GOOGLE PLACES FETCHER
 # ------------------------------------------------------------------------------
 def fetch_google_places():
@@ -39,7 +61,11 @@ def fetch_google_places():
     "restaurants in {ZIP} WA" is sent and results are paged until all
     pages are retrieved.
     """
-    all_rows_for_df = [] # Stores all raw results for the DataFrame returned by this function
+    if not NETWORK_AVAILABLE:
+        print("[INFO] Skipping Google Places fetch due to no network connectivity.")
+        return pd.DataFrame(columns=["name", "address", "lat", "lon", "place_id", "phone", "source", "last_seen", "rating_google", "user_ratings_total_google", "business_status_google"])
+
+    all_rows_for_df = []  # Stores all raw results for the DataFrame returned by this function
     # smb_restaurants_data list (imported) will be populated with filtered results
 
     for z in TARGET_OLYMPIA_ZIPS:
@@ -133,6 +159,8 @@ def fetch_gov_csvs():
     Read in government CSVs. Each must have at least: Address, City, State, ZIP.
     Outputs name, address, lat, lon, phone, source, last_seen.
     """
+    if not NETWORK_AVAILABLE:
+        print("[INFO] Network unavailable. Government CSVs will be read without geocoding.")
     frames = []
     expected_cols = ["name", "address", "lat", "lon", "phone", "source", "last_seen"]
     for key, filepath in GOV_CSV_FILES.items():
@@ -176,14 +204,14 @@ def fetch_gov_csvs():
             
             # Attempt geocoding only if lat/lon are missing
             needs_geocoding = df['lat'].isna() | df['lon'].isna()
-            if needs_geocoding.any():
+            if needs_geocoding.any() and NETWORK_AVAILABLE and geocoder:
                 print(f"Attempting to geocode {needs_geocoding.sum()} missing lat/lon for {key} using geocoder.osm...")
                 for index, row_to_geocode in df[needs_geocoding].iterrows():
                     addr_to_geocode = row_to_geocode["address_full"]
                     if addr_to_geocode and isinstance(addr_to_geocode, str) and addr_to_geocode.strip():
                         try:
-                            time.sleep(1.1) # Nominatim rate limit
-                            g = geocoder.osm(addr_to_geocode, timeout=10) # Add timeout
+                            time.sleep(1.1)  # Nominatim rate limit
+                            g = geocoder.osm(addr_to_geocode, timeout=10)
                             if g.ok and g.latlng:
                                 df.loc[index, 'lat'] = g.latlng[0]
                                 df.loc[index, 'lon'] = g.latlng[1]
@@ -191,7 +219,8 @@ def fetch_gov_csvs():
                                 print(f"Failed to geocode (or no result for) '{addr_to_geocode}' from {key}")
                         except Exception as e_geo:
                             print(f"Error geocoding address '{addr_to_geocode}' from {key}: {e_geo}")
-                    # else: print(f"Skipping geocoding for empty or invalid address in {key}: {addr_to_geocode}")
+            elif needs_geocoding.any() and (not NETWORK_AVAILABLE or not geocoder):
+                print(f"[INFO] Skipping geocoding for {needs_geocoding.sum()} addresses in {key} due to no network or missing geocoder module.")
 
 
             # Select and rename columns for the standardized DataFrame
@@ -250,6 +279,10 @@ def fetch_osm():
     Fetch all nodes/ways tagged amenity=restaurant, cafe, fast_food within Thurston County.
     Returns name, address, lat, lon, phone, source, last_seen.
     """
+    if not NETWORK_AVAILABLE:
+        print("[INFO] Skipping OpenStreetMap fetch due to no network connectivity.")
+        return pd.DataFrame(columns=["name", "address", "lat", "lon", "phone", "source", "last_seen"])
+
     api = overpy.Overpass(url=OVERPASS_ENDPOINT)
     south, west, north, east = 46.8, -123.1, 47.2, -122.6 # Thurston County approx. bounds
 
