@@ -102,7 +102,7 @@ def fetch_google_places(radius=50000, types_list=None, keyword_list=None):
         keyword_list = ["taco", "pizza", "deli", "pub", "bbq"]
 
     all_rows = []
-    for z in SEARCH_ZIP_CODES:
+    for z in TARGET_OLYMPIA_ZIPS:
         g = geocoder.osm(z + ", WA, USA")
         if g.ok:
             center_lat, center_lng = g.latlng
@@ -206,7 +206,7 @@ def fetch_doordash(zip_code_list=None):
     """
     all_rows = []
     if zip_code_list is None:
-        zip_code_list = SEARCH_ZIP_CODES
+        zip_code_list = TARGET_OLYMPIA_ZIPS
 
     for z in zip_code_list:
         url = f"https://api.doordash.com/v2/search/store/?location={z},WA&limit=100"
@@ -239,7 +239,7 @@ def fetch_uber_eats(zip_code_list=None):
     """
     all_rows = []
     if zip_code_list is None:
-        zip_code_list = SEARCH_ZIP_CODES
+        zip_code_list = TARGET_OLYMPIA_ZIPS
 
     for z in zip_code_list:
         url = f"https://www.ubereats.com/api/getFeed?obtainBy=restaurant&address={z}%2C%20WA"
