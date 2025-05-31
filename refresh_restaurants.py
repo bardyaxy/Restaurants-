@@ -1,11 +1,9 @@
 import os
 import time
-import csv
 import json
 import requests
 import pandas as pd
 from datetime import datetime
-from rapidfuzz import fuzz, process
 import overpy
 import geocoder  # for address normalization
 from dotenv import load_dotenv
