@@ -13,7 +13,11 @@ load_dotenv()
 # ------------------------------------------------------------------------------
 # CONFIGURATION: fill in your API keys and file locations here
 # ------------------------------------------------------------------------------
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")  # for Google Places
+google_api_key = os.getenv("GOOGLE_API_KEY")
+if not google_api_key:
+    print("Error: GOOGLE_API_KEY not found. Please set the environment variable.")
+    exit(1)
+GOOGLE_API_KEY = google_api_key  # for Google Places
 DOORDASH_API_KEY = os.getenv("DOORDASH_API_KEY")  # if you have one
 UBER_EATS_API_KEY = os.getenv("UBER_EATS_API_KEY")  # if available
 OUTPUT_CSV = "master_restaurants.csv"
