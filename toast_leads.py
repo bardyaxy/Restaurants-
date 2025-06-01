@@ -7,6 +7,9 @@ from datetime import datetime, timezone
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import requests
+from dotenv import load_dotenv
+
+load_dotenv()
 
 try:
     from chain_blocklist import CHAIN_BLOCKLIST
