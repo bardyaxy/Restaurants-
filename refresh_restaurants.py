@@ -25,7 +25,9 @@ except ImportError:
 # LOCAL MODULES ----------------------------------------------------------------
 # -----------------------------------------------------------------------------
 from chain_blocklist import CHAIN_BLOCKLIST  # list of substrings that ID big chains
-from smb_restaurants_data import smb_restaurants_data  # global list populated here
+
+# Data store for Google Places results
+smb_restaurants_data: list[dict] = []
 
 load_dotenv()
 
