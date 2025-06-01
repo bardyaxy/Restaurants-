@@ -51,7 +51,7 @@ def save_seen_ids(ids: set[str], path: str = "seen_place_ids.json") -> None:
         json.dump(sorted(ids), f, indent=2)
 
 
-def fetch_details(place_id: str) -> dict:
+def fetch_details(place_id: str, session: requests.Session) -> dict:
     params = {
         "key": GOOGLE_API_KEY,
         "place_id": place_id,
@@ -61,7 +61,7 @@ def fetch_details(place_id: str) -> dict:
         ),
     }
     try:
-        resp = requests.get(DETAILS_URL, params=params, timeout=15)
+        resp = session.get(DETAILS_URL, params=params, timeout=15)
         resp.raise_for_status()
         return resp.json().get("result", {})
     except Exception as exc:
@@ -76,16 +76,17 @@ def main() -> None:
     seen_ids = load_seen_ids()
     new_rows = []
 
-    for zip_code in TARGET_OLYMPIA_ZIPS:
-        params = {"key": GOOGLE_API_KEY, "query": f"restaurants in {zip_code} WA"}
-        while True:
-            try:
-                resp = requests.get(SEARCH_URL, params=params, timeout=15)
-                resp.raise_for_status()
-                data = resp.json()
-            except Exception as exc:
-                logging.error("Search failed for %s: %s", zip_code, exc)
-                break
+    with requests.Session() as session:
+        for zip_code in TARGET_OLYMPIA_ZIPS:
+            params = {"key": GOOGLE_API_KEY, "query": f"restaurants in {zip_code} WA"}
+            while True:
+                try:
+                    resp = session.get(SEARCH_URL, params=params, timeout=15)
+                    resp.raise_for_status()
+                    data = resp.json()
+                except Exception as exc:
+                    logging.error("Search failed for %s: %s", zip_code, exc)
+                    break
 
             futures = {}
             with ThreadPoolExecutor(max_workers=8) as excpool:
@@ -96,7 +97,7 @@ def main() -> None:
                     pid = result.get("place_id")
                     if not pid or pid in seen_ids:
                         continue
-                    futures[excpool.submit(fetch_details, pid)] = pid
+                    futures[excpool.submit(fetch_details, pid, session)] = pid
             for fut in as_completed(futures):
                 pid = futures[fut]
                 details = fut.result()

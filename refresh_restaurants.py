@@ -83,17 +83,18 @@ def fetch_google_places() -> None:
     text_url = "https://maps.googleapis.com/maps/api/place/textsearch/json"
     details_url = "https://maps.googleapis.com/maps/api/place/details/json"
 
-    for zip_code in TARGET_OLYMPIA_ZIPS:
-        print(f"Fetching Google Places data for ZIP {zip_code}…")
-        params = {"key": GOOGLE_API_KEY, "query": f"restaurants in {zip_code} WA"}
-        while True:
-            try:
-                resp = requests.get(text_url, params=params, timeout=15)
-                resp.raise_for_status()
-                data = resp.json()
-            except (requests.RequestException, json.JSONDecodeError) as exc:
-                print(f"Error during Text Search for {zip_code}: {exc}")
-                break
+    with requests.Session() as session:
+        for zip_code in TARGET_OLYMPIA_ZIPS:
+            print(f"Fetching Google Places data for ZIP {zip_code}…")
+            params = {"key": GOOGLE_API_KEY, "query": f"restaurants in {zip_code} WA"}
+            while True:
+                try:
+                    resp = session.get(text_url, params=params, timeout=15)
+                    resp.raise_for_status()
+                    data = resp.json()
+                except (requests.RequestException, json.JSONDecodeError) as exc:
+                    print(f"Error during Text Search for {zip_code}: {exc}")
+                    break
 
             for result in data.get("results", []):
                 name = result.get("name", "")
@@ -122,7 +123,7 @@ def fetch_google_places() -> None:
                 }
                 details = {}
                 try:
-                    d_resp = requests.get(details_url, params=det_params, timeout=15)
+                    d_resp = session.get(details_url, params=det_params, timeout=15)
                     d_resp.raise_for_status()
                     details = d_resp.json().get("result", {})
                 except Exception as exc:
