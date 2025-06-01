@@ -25,6 +25,7 @@ except ImportError:
 # LOCAL MODULES ----------------------------------------------------------------
 # -----------------------------------------------------------------------------
 from chain_blocklist import CHAIN_BLOCKLIST  # list of substrings that ID big chains
+from network_utils import check_network
 
 # Data store for Google Places results
 smb_restaurants_data: list[dict] = []
@@ -49,15 +50,6 @@ OLYMPIA_LAT, OLYMPIA_LON = 47.0379, -122.9007  # used for distance calculation
 # -----------------------------------------------------------------------------
 # UTILS ------------------------------------------------------------------------
 # -----------------------------------------------------------------------------
-
-def check_network(url: str = "https://www.google.com", timeout: int = 5) -> bool:
-    """Return True if network is reachable."""
-    try:
-        requests.head(url, timeout=timeout)
-        return True
-    except requests.RequestException:
-        return False
-
 
 
 

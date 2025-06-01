@@ -7,17 +7,15 @@ from datetime import datetime, timezone
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import requests
-from dotenv import load_dotenv
+try:
+    from dotenv import load_dotenv
+except ImportError:
+    def load_dotenv(*_args, **_kwargs):
+        pass
+from network_utils import check_network
 
 load_dotenv()
 
-def check_network(url: str = "https://www.google.com", timeout: int = 5) -> bool:
-    """Return True if network is reachable."""
-    try:
-        requests.head(url, timeout=timeout)
-        return True
-    except requests.RequestException:
-        return False
 
 try:
     from chain_blocklist import CHAIN_BLOCKLIST
