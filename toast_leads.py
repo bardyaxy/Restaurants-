@@ -86,48 +86,49 @@ def main() -> None:
                     logging.error("Search failed for %s: %s", zip_code, exc)
                     break
 
-            futures = {}
-            with ThreadPoolExecutor(max_workers=8) as excpool:
-                for result in data.get("results", []):
-                    name = result.get("name", "")
-                    if any(block in name.lower() for block in CHAIN_BLOCKLIST):
-                        continue
-                    pid = result.get("place_id")
-                    if not pid or pid in seen_ids:
-                        continue
-                    futures[excpool.submit(fetch_details, pid, session)] = pid
+                futures = {}
+                with ThreadPoolExecutor(max_workers=8) as excpool:
+                    for result in data.get("results", []):
+                        name = result.get("name", "")
+                        if any(block in name.lower() for block in CHAIN_BLOCKLIST):
+                            continue
+                        pid = result.get("place_id")
+                        if not pid or pid in seen_ids:
+                            continue
+                        futures[excpool.submit(fetch_details, pid, session)] = pid
 
-                for fut in as_completed(futures):
-                    pid = futures[fut]
-                    details = fut.result()
-                    if not details:
-                        continue
-                    seen_ids.add(pid)
-                    row = {
-                        "Business Name": details.get("name"),
-                        "Formatted Address": details.get("formatted_address"),
-                        "Place ID": pid,
-                        "Formatted Phone Number": details.get(
-                            "formatted_phone_number"
-                        ),
-                        "International Phone Number": details.get(
-                            "international_phone_number"
-                        ),
-                        "Website": details.get("website"),
-                        "Rating": details.get("rating"),
-                        "User Ratings Total": details.get("user_ratings_total"),
-                        "Business Status": details.get("business_status"),
-                        "Price Level": details.get("price_level"),
-                        "lat": details.get("geometry", {}).get("location", {}).get("lat"),
-                        "lon": details.get("geometry", {}).get("location", {}).get("lng"),
-                        "last_seen": datetime.now(timezone.utc).isoformat(),
-                    }
-                    new_rows.append(row)
-            next_tok = data.get("next_page_token")
-            if not next_tok:
-                break
-            time.sleep(2)
-            params = {"key": GOOGLE_API_KEY, "pagetoken": next_tok}
+                    for fut in as_completed(futures):
+                        pid = futures[fut]
+                        details = fut.result()
+                        if not details:
+                            continue
+                        seen_ids.add(pid)
+                        row = {
+                            "Business Name": details.get("name"),
+                            "Formatted Address": details.get("formatted_address"),
+                            "Place ID": pid,
+                            "Formatted Phone Number": details.get(
+                                "formatted_phone_number"
+                            ),
+                            "International Phone Number": details.get(
+                                "international_phone_number"
+                            ),
+                            "Website": details.get("website"),
+                            "Rating": details.get("rating"),
+                            "User Ratings Total": details.get("user_ratings_total"),
+                            "Business Status": details.get("business_status"),
+                            "Price Level": details.get("price_level"),
+                            "lat": details.get("geometry", {}).get("location", {}).get("lat"),
+                            "lon": details.get("geometry", {}).get("location", {}).get("lng"),
+                            "last_seen": datetime.now(timezone.utc).isoformat(),
+                        }
+                        new_rows.append(row)
+
+                next_tok = data.get("next_page_token")
+                if not next_tok:
+                    break
+                time.sleep(2)
+                params = {"key": GOOGLE_API_KEY, "pagetoken": next_tok}
 
     if not new_rows:
         print("No new leads found.")
