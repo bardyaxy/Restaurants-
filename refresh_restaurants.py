@@ -81,9 +81,14 @@ def fetch_google_places() -> None:
         for zip_code in TARGET_OLYMPIA_ZIPS:
             print(f"Fetching Google Places data for ZIP {zip_code}…")
             params = {"key": GOOGLE_API_KEY, "query": f"restaurants in {zip_code} WA"}
+            page = 1
             while True:
                 try:
                     resp = session.get(text_url, params=params, timeout=15)
+                    print(
+                        f"{zip_code} page {page} -> {resp.status_code} / {resp.json().get('status')}",
+                        flush=True,
+                    )
                     resp.raise_for_status()
                     data = resp.json()
                 except (requests.RequestException, json.JSONDecodeError) as exc:
@@ -174,6 +179,7 @@ def fetch_google_places() -> None:
                     break
                 time.sleep(2)  # Google requirement before using next_page_token
                 params = {"key": GOOGLE_API_KEY, "pagetoken": next_token}
+                page += 1
 
     print(f"Collected {len(smb_restaurants_data)} SMB rows with enrichment.")
 

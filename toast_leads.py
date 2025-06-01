@@ -77,9 +77,14 @@ def main() -> None:
     with requests.Session() as session:
         for zip_code in TARGET_OLYMPIA_ZIPS:
             params = {"key": GOOGLE_API_KEY, "query": f"restaurants in {zip_code} WA"}
+            page = 1
             while True:
                 try:
                     resp = session.get(SEARCH_URL, params=params, timeout=15)
+                    print(
+                        f"{zip_code} page {page} -> {resp.status_code} / {resp.json().get('status')}",
+                        flush=True,
+                    )
                     resp.raise_for_status()
                     data = resp.json()
                 except Exception as exc:
@@ -129,6 +134,7 @@ def main() -> None:
                     break
                 time.sleep(2)
                 params = {"key": GOOGLE_API_KEY, "pagetoken": next_tok}
+                page += 1
 
     if not new_rows:
         print("No new leads found.")
