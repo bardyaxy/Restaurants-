@@ -34,7 +34,7 @@ GOV_CSV_FILES = {
     "thurston_county": "thurston_business_licenses.csv",
 }
 OVERPASS_ENDPOINT = "https://overpass-api.de/api/interpreter"
-TARGET_OLYMPIA_ZIPS = ["98501", "98502", "98506"] # Kept short for testing
+TARGET_OLYMPIA_ZIPS = ["98501"]  # Simplified to a single ZIP
 
 # ------------------------------------------------------------------------------
 # NETWORK CHECK
@@ -424,147 +424,25 @@ def dedupe_master(df: pd.DataFrame) -> pd.DataFrame:
 # 6) MAIN EXECUTION
 # ------------------------------------------------------------------------------
 def main():
-    print("Initializing SMB restaurants list...")
-    # Ensure smb_restaurants_data is a global list that fetch_google_places can append to
-    # Or, modify fetch_google_places to return it, and assign it here.
-    # For now, assuming smb_restaurants_data is populated globally by fetch_google_places.
-    global smb_restaurants_data # Make sure we are referring to the global list from the import
-    smb_restaurants_data = [] # Explicitly reset it here for each run of main()
+    """Fetch SMB restaurants from Google Places for a single ZIP and save them."""
+    global smb_restaurants_data
+    smb_restaurants_data = []  # reset on each run
 
-    print("Fetching Google Places…")
-    df_google_raw = fetch_google_places() # This populates smb_restaurants_data globally AND returns all_rows_for_df
-    
-    # The following print statements are for clarity on what fetch_google_places did
-    print(f"→ {len(df_google_raw)} raw rows collected by fetch_google_places function.")
-    print(f"→ {len(smb_restaurants_data)} SMB restaurants (chains filtered) collected in smb_restaurants_data list.")
+    # Fetch Google Places data; results populate smb_restaurants_data
+    fetch_google_places()
 
-    # Now, create a DataFrame from the filtered smb_restaurants_data for the merge
-    if smb_restaurants_data:
-        df_google_smb_filtered = pd.DataFrame(smb_restaurants_data)
-        # Standardize column names to match what dedupe_master expects from Google source
-        df_google_smb_filtered = df_google_smb_filtered.rename(columns={
-            "Name": "name",
-            "Formatted Address": "address",
-            "Place ID": "place_id",
-            # Add other mappings if needed, ensure 'lat', 'lon', 'source', 'last_seen' are present
-        })
-        # Ensure all necessary columns are present for the merge, adding NAs if some are missing from smb_restaurants_data structure
-        expected_google_cols = ["name", "address", "lat", "lon", "place_id", "phone", "source", "last_seen", "rating_google", "user_ratings_total_google", "business_status_google"]
-        for col in expected_google_cols:
-            if col not in df_google_smb_filtered.columns:
-                if col in ["lat", "lon", "rating_google", "user_ratings_total_google"]:
-                    df_google_smb_filtered[col] = pd.NA 
-                else:
-                    df_google_smb_filtered[col] = None # or "" for strings
-        
-        df_google_smb_filtered['source'] = 'google_places_smb' # Mark source clearly
-        # last_seen should already be in isoformat from fetch_google_places if added to smb_restaurants_data items
-        # For simplicity, if it's missing, let's add it here too.
-        if 'last_seen' not in df_google_smb_filtered.columns:
-             df_google_smb_filtered['last_seen'] = datetime.utcnow().isoformat()
+    print(
+        f"→ {len(smb_restaurants_data)} SMB restaurants collected from Google Places for ZIP {TARGET_OLYMPIA_ZIPS[0]}."
+    )
 
-        print(f"→ Using {len(df_google_smb_filtered)} filtered SMB rows from Google Places for the main merge.")
-    else:
-        print("→ No SMB restaurants found by Google Places, or smb_restaurants_data is empty. Using empty DataFrame for Google source.")
-        df_google_smb_filtered = pd.DataFrame(columns=["name", "address", "lat", "lon", "place_id", "phone", "source", "last_seen"])
-
-
-    print("Reading government CSVs…")
-    df_gov = fetch_gov_csvs()
-    print(f"→ {len(df_gov)} rows from government sources")
-
-    print("Querying OpenStreetMap…")
-    df_osm = fetch_osm()
-    print(f"→ {len(df_osm)} rows from OSM")
-    
-    all_dfs = []
-    if not df_google_smb_filtered.empty: all_dfs.append(df_google_smb_filtered)
-    if not df_gov.empty: all_dfs.append(df_gov)
-    if not df_osm.empty: all_dfs.append(df_osm)
-
-    if not all_dfs:
-        print("No data from any source to merge. Exiting.")
+    if not smb_restaurants_data:
+        print("No SMB restaurants found. Nothing to save.")
         return
 
-    master = pd.concat(all_dfs, ignore_index=True)
-    
-    # Ensure essential columns for dedupe_master exist, fill if necessary
-    for col in ["name", "address", "source", "last_seen"]: # lat,lon are also important but handled differently
-        if col not in master.columns: master[col] = "" if col != "last_seen" else datetime.utcnow().isoformat()
-        master[col] = master[col].fillna("" if col != "last_seen" else datetime.utcnow().isoformat())
-    
-    # Ensure lat/lon are float or can be converted, handle errors
-    for col in ["lat", "lon"]:
-        if col in master.columns:
-            master[col] = pd.to_numeric(master[col], errors='coerce')
-        else:
-            master[col] = pd.NA
-
-
-    print("Deduplicating…")
-    master_clean = dedupe_master(master)
-
-    if master_clean.empty:
-        print("No data after deduplication. Skipping file save.")
-        return
-
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    out_csv = f"{os.path.splitext(OUTPUT_CSV)[0]}_{timestamp}.csv"
-    master_clean.to_csv(out_csv, index=False)
-    print(f"Saved merged list to {out_csv}")
-
-    # GeoJSON export - ensure shapely is imported at the top or checked before use
-    try:
-        from shapely.geometry import Point, mapping # Moved import here to be conditional
-
-        features = []
-        # Check if 'appeared_in' column exists, if not, create an empty list for sources
-        if 'appeared_in' not in master_clean.columns:
-            master_clean['appeared_in'] = [[] for _ in range(len(master_clean))]
-        if 'needs_verification' not in master_clean.columns:
-            master_clean['needs_verification'] = True
-
-
-        for _, row in master_clean.iterrows():
-            try:
-                lon_val = row.get("lon")
-                lat_val = row.get("lat")
-                if pd.notna(lon_val) and pd.notna(lat_val):
-                    pt = Point(float(lon_val), float(lat_val))
-                    
-                    appeared_in_val = row.get("appeared_in")
-                    if isinstance(appeared_in_val, list):
-                        source_str = ",".join(appeared_in_val)
-                    elif pd.notna(appeared_in_val):
-                        source_str = str(appeared_in_val)
-                    else:
-                        source_str = "unknown"
-
-                    prop = {
-                        "name": row.get("name", ""),
-                        "address": row.get("address", ""),
-                        "phone": row.get("phone", ""),
-                        "source": source_str,
-                        "needs_verification": row.get("needs_verification", True),
-                    }
-                    features.append({"type": "Feature", "geometry": mapping(pt), "properties": prop})
-            except (ValueError, TypeError, AttributeError) as e_point:
-                # print(f"Skipping GeoJSON feature for row '{row.get('name', 'N/A')}' due to invalid lat/lon or data: {e_point}")
-                pass
-
-        if features:
-            geojson = {"type": "FeatureCollection", "features": features}
-            geo_out = f"{os.path.splitext(OUTPUT_CSV)[0]}_{timestamp}.geojson"
-            with open(geo_out, "w") as f:
-                json.dump(geojson, f, indent=2)
-            print(f"Saved GeoJSON to {geo_out}")
-        else:
-            print("No valid features with lat/lon to save in GeoJSON.")
-
-    except ImportError:
-        print("Shapely library not found. Skipping GeoJSON export. Please install it if needed (pip install Shapely).")
-    except Exception as e_geojson:
-        print(f"Skipping GeoJSON export due to an error: {e_geojson}")
+    df = pd.DataFrame(smb_restaurants_data)
+    out_csv = "olympia_smb_google_restaurants_single_zip.csv"
+    df.to_csv(out_csv, index=False)
+    print(f"Saved filtered Google SMB list to {out_csv}")
 
 
 if __name__ == "__main__":
