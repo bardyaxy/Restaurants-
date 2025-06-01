@@ -11,6 +11,14 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+def check_network(url: str = "https://www.google.com", timeout: int = 5) -> bool:
+    """Return True if network is reachable."""
+    try:
+        requests.head(url, timeout=timeout)
+        return True
+    except requests.RequestException:
+        return False
+
 try:
     from chain_blocklist import CHAIN_BLOCKLIST
 except Exception:
@@ -62,6 +70,9 @@ def fetch_details(place_id: str) -> dict:
 
 
 def main() -> None:
+    if not check_network():
+        print("[WARN] Skipping Toast leads fetch - network unreachable.")
+        return
     seen_ids = load_seen_ids()
     new_rows = []
 
