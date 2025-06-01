@@ -28,7 +28,6 @@ if not google_api_key:
     exit(1)
 # No need to reassign to GOOGLE_API_KEY, use google_api_key directly.
 
-OUTPUT_CSV = "master_restaurants.csv"
 GOV_CSV_FILES = {
     "wa_health": "wa_food_establishments.csv",
     "thurston_county": "thurston_business_licenses.csv",
@@ -55,7 +54,7 @@ if not NETWORK_AVAILABLE:
 # 1) GOOGLE PLACES FETCHER
 # ------------------------------------------------------------------------------
 def fetch_google_places():
-    """Fetch restaurant data using Google Places Text Search.
+    """Populate ``smb_restaurants_data`` using Google Places Text Search.
 
     For each ZIP in ``TARGET_OLYMPIA_ZIPS`` the query
     "restaurants in {ZIP} WA" is sent and results are paged until all
@@ -63,10 +62,9 @@ def fetch_google_places():
     """
     if not NETWORK_AVAILABLE:
         print("[INFO] Skipping Google Places fetch due to no network connectivity.")
-        return pd.DataFrame(columns=["name", "address", "lat", "lon", "place_id", "phone", "source", "last_seen", "rating_google", "user_ratings_total_google", "business_status_google"])
+        return
 
-    all_rows_for_df = []  # Stores all raw results for the DataFrame returned by this function
-    # smb_restaurants_data list (imported) will be populated with filtered results
+    # ``smb_restaurants_data`` will be populated with filtered results
 
     for z in TARGET_OLYMPIA_ZIPS:
         print(f"Fetching Google Places data for ZIP code: {z}...")
@@ -117,22 +115,82 @@ def fetch_google_places():
                     "user_ratings_total_google": result.get("user_ratings_total"),
                     "business_status_google": result.get("business_status"),
                 }
-                all_rows_for_df.append(row)
 
                 name_lower = (row["name"] or "").lower()
-                if not any(block in name_lower for block in CHAIN_BLOCKLIST):
-                    smb_restaurants_data.append({
-                        "Name": row["name"],
-                        "Formatted Address": row["address"],
-                        "Place ID": row["place_id"],
-                        "Rating": row["rating_google"],
-                        "User Ratings Total": row["user_ratings_total_google"],
-                        "Business Status": row["business_status_google"],
-                        "Zip Code": z,
-                        # You might want to add lat/lon here too if needed elsewhere for smb_restaurants_data
-                        "lat": row["lat"],
-                        "lon": row["lon"]
-                    })
+                if any(block in name_lower for block in CHAIN_BLOCKLIST):
+                    continue
+
+                # Fetch additional details for this place
+                details_url = "https://maps.googleapis.com/maps/api/place/details/json"
+                details_params = {
+                    "key": google_api_key,
+                    "place_id": row["place_id"],
+                    "fields": (
+                        "formatted_phone_number,international_phone_number,"
+                        "website,opening_hours,price_level,types," 
+                        "address_components,photo"
+                    ),
+                }
+                details_resp = {}
+                try:
+                    d_resp = requests.get(details_url, params=details_params, timeout=15)
+                    d_resp.raise_for_status()
+                    details_resp = d_resp.json().get("result", {})
+                except Exception as e_det:
+                    print(f"Error fetching details for {row['place_id']}: {e_det}")
+
+                phone_fmt = details_resp.get("formatted_phone_number")
+                phone_intl = details_resp.get("international_phone_number")
+                website = details_resp.get("website")
+                weekday_text = details_resp.get("opening_hours", {}).get("weekday_text", [])
+                opening_hours = ";".join(weekday_text) if weekday_text else None
+                price_level = details_resp.get("price_level")
+                types = ",".join(details_resp.get("types", []))
+                photo_ref = None
+                photos = details_resp.get("photos", [])
+                if photos:
+                    photo_ref = photos[0].get("photo_reference")
+
+                # Address components parsing
+                comps = details_resp.get("address_components", [])
+                street_no = route = city = state = zip_code = ""
+                for comp in comps:
+                    t = comp.get("types", [])
+                    if "street_number" in t:
+                        street_no = comp.get("long_name", "")
+                    if "route" in t:
+                        route = comp.get("long_name", "")
+                    if "locality" in t:
+                        city = comp.get("long_name", "")
+                    if "administrative_area_level_1" in t:
+                        state = comp.get("short_name", "")
+                    if "postal_code" in t:
+                        zip_code = comp.get("long_name", "")
+                street_address = f"{street_no} {route}".strip()
+                zip_final = zip_code or z
+
+                smb_restaurants_data.append({
+                    "Name": row["name"],
+                    "Formatted Address": row["address"],
+                    "Place ID": row["place_id"],
+                    "Rating": row["rating_google"],
+                    "User Ratings Total": row["user_ratings_total_google"],
+                    "Business Status": row["business_status_google"],
+                    "Formatted Phone Number": phone_fmt,
+                    "International Phone Number": phone_intl,
+                    "Website": website,
+                    "Opening Hours": opening_hours,
+                    "Price Level": price_level,
+                    "Types": types,
+                    "Photo Reference": photo_ref,
+                    "Street Address": street_address,
+                    "City": city,
+                    "State": state,
+                    "Zip Code": zip_final,
+                    "source": "google_places_smb",
+                    "lat": row["lat"],
+                    "lon": row["lon"],
+                })
             
             next_page_token = data.get("next_page_token")
             if next_page_token:
@@ -145,10 +203,9 @@ def fetch_google_places():
                 break
         # print(f"Finished all pages for ZIP {z}.") # Uncomment for deep debugging
 
-    if not all_rows_for_df:
+    if not smb_restaurants_data:
         print("No rows collected from Google Places overall.")
-        return pd.DataFrame(columns=["name", "address", "lat", "lon", "place_id", "phone", "source", "last_seen", "rating_google", "user_ratings_total_google", "business_status_google"])
-    return pd.DataFrame(all_rows_for_df)
+    return
 
 
 # ------------------------------------------------------------------------------
@@ -425,8 +482,7 @@ def dedupe_master(df: pd.DataFrame) -> pd.DataFrame:
 # ------------------------------------------------------------------------------
 def main():
     """Fetch SMB restaurants from Google Places for a single ZIP and save them."""
-    global smb_restaurants_data
-    smb_restaurants_data = []  # reset on each run
+    smb_restaurants_data.clear()  # reset on each run
 
     # Fetch Google Places data; results populate smb_restaurants_data
     fetch_google_places()
