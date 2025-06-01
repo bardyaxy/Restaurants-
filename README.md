@@ -4,12 +4,12 @@ This project collects restaurant information for ZIP codes around Olympia, Washi
 
 ## Features
 
-- **Google Places fetcher** with a chain blocklist to keep only local small businesses. Records include rating, user review count, business status and coordinates.
-- **Government CSV importer** for Washington health and Thurston County license data with optional geocoding when the network is available.
-- **OpenStreetMap fetcher** (Overpass API) for additional restaurant listings.
+- **Google Places SMB fetcher** with a chain blocklist. This is the only active data source and records rating, review count, business status and coordinates.
+- **Government CSV importer** *(disabled)* for Washington health and Thurston County license data.
+- **OpenStreetMap fetcher** *(disabled)* for additional restaurant listings.
 - **Deduplication routine** that merges results from all sources while prioritizing Google Places SMB entries.
 - **Network check** to gracefully skip online fetchers when offline.
-- Output saved as `olympia_smb_google_restaurants_single_zip.csv`.
+- Output saved as `olympia_smb_google_restaurants_<timestamp>.csv`.
 
 ## Setup
 
@@ -27,6 +27,6 @@ The script currently targets a single ZIP code (`98501`). Adjust `TARGET_OLYMPIA
 
 ## Toast lead enrichment
 
-1. Run `toast_leads.py` to gather additional restaurant leads. On the first execution the script creates a `config.yaml` file. Edit this file and provide your `google_api_key` before running again.
-2. Subsequent runs output an `olympia_toast_smb_<timestamp>.csv` and cache processed place IDs in `seen_place_ids.json` so only new results are fetched.
+1. Run `toast_leads.py` to gather additional restaurant leads. Ensure the `GOOGLE_API_KEY` environment variable is set before running.
+2. The script outputs an `olympia_toast_smb_<timestamp>.csv` and caches processed place IDs in `seen_place_ids.json` so only new results are fetched.
 3. The script requires the `pyyaml` package which is included in `requirements.txt`.
