@@ -28,7 +28,6 @@ if not google_api_key:
     exit(1)
 # No need to reassign to GOOGLE_API_KEY, use google_api_key directly.
 
-OUTPUT_CSV = "master_restaurants.csv"
 GOV_CSV_FILES = {
     "wa_health": "wa_food_establishments.csv",
     "thurston_county": "thurston_business_licenses.csv",
@@ -55,7 +54,7 @@ if not NETWORK_AVAILABLE:
 # 1) GOOGLE PLACES FETCHER
 # ------------------------------------------------------------------------------
 def fetch_google_places():
-    """Fetch restaurant data using Google Places Text Search.
+    """Populate ``smb_restaurants_data`` using Google Places Text Search.
 
     For each ZIP in ``TARGET_OLYMPIA_ZIPS`` the query
     "restaurants in {ZIP} WA" is sent and results are paged until all
@@ -63,10 +62,9 @@ def fetch_google_places():
     """
     if not NETWORK_AVAILABLE:
         print("[INFO] Skipping Google Places fetch due to no network connectivity.")
-        return pd.DataFrame(columns=["name", "address", "lat", "lon", "place_id", "phone", "source", "last_seen", "rating_google", "user_ratings_total_google", "business_status_google"])
+        return
 
-    all_rows_for_df = []  # Stores all raw results for the DataFrame returned by this function
-    # smb_restaurants_data list (imported) will be populated with filtered results
+    # ``smb_restaurants_data`` will be populated with filtered results
 
     for z in TARGET_OLYMPIA_ZIPS:
         print(f"Fetching Google Places data for ZIP code: {z}...")
@@ -117,7 +115,6 @@ def fetch_google_places():
                     "user_ratings_total_google": result.get("user_ratings_total"),
                     "business_status_google": result.get("business_status"),
                 }
-                all_rows_for_df.append(row)
 
                 name_lower = (row["name"] or "").lower()
                 if not any(block in name_lower for block in CHAIN_BLOCKLIST):
@@ -129,6 +126,7 @@ def fetch_google_places():
                         "User Ratings Total": row["user_ratings_total_google"],
                         "Business Status": row["business_status_google"],
                         "Zip Code": z,
+                        "source": "google_places_smb",
                         # You might want to add lat/lon here too if needed elsewhere for smb_restaurants_data
                         "lat": row["lat"],
                         "lon": row["lon"]
@@ -145,10 +143,9 @@ def fetch_google_places():
                 break
         # print(f"Finished all pages for ZIP {z}.") # Uncomment for deep debugging
 
-    if not all_rows_for_df:
+    if not smb_restaurants_data:
         print("No rows collected from Google Places overall.")
-        return pd.DataFrame(columns=["name", "address", "lat", "lon", "place_id", "phone", "source", "last_seen", "rating_google", "user_ratings_total_google", "business_status_google"])
-    return pd.DataFrame(all_rows_for_df)
+    return
 
 
 # ------------------------------------------------------------------------------
@@ -425,8 +422,7 @@ def dedupe_master(df: pd.DataFrame) -> pd.DataFrame:
 # ------------------------------------------------------------------------------
 def main():
     """Fetch SMB restaurants from Google Places for a single ZIP and save them."""
-    global smb_restaurants_data
-    smb_restaurants_data = []  # reset on each run
+    smb_restaurants_data.clear()  # reset on each run
 
     # Fetch Google Places data; results populate smb_restaurants_data
     fetch_google_places()
