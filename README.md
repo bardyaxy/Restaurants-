@@ -24,3 +24,9 @@ This project collects restaurant information for ZIP codes around Olympia, Washi
    ```
 
 The script currently targets a single ZIP code (`98501`). Adjust `TARGET_OLYMPIA_ZIPS` in `refresh_restaurants.py` if you need additional areas.
+
+## Toast lead enrichment
+
+1. Run `toast_leads.py` to gather additional restaurant leads. On the first execution the script creates a `config.yaml` file. Edit this file and provide your `google_api_key` before running again.
+2. Subsequent runs output an `olympia_toast_smb_<timestamp>.csv` and cache processed place IDs in `seen_place_ids.json` so only new results are fetched.
+3. The script requires the `pyyaml` package which is included in `requirements.txt`.
