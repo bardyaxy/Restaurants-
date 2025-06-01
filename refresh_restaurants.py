@@ -57,9 +57,6 @@ def check_network(url: str = "https://www.google.com", timeout: int = 5) -> bool
         return False
 
 
-NETWORK_AVAILABLE = check_network()
-if not NETWORK_AVAILABLE:
-    print("[WARNING] Network unreachable. Online data sources will be skipped.")
 
 
 def haversine(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
@@ -79,7 +76,7 @@ def haversine(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
 def fetch_google_places() -> None:
     """Populate smb_restaurants_data with enriched Google Places SMB rows."""
 
-    if not NETWORK_AVAILABLE:
+    if not check_network():
         print("[INFO] Skipping Google Places fetch due to no network connectivity.")
         return
 
@@ -202,7 +199,7 @@ def fetch_gov_csvs():
 # -----------------------------------------------------------------------------
 
 def fetch_osm():
-    if not NETWORK_AVAILABLE:
+    if not check_network():
         return pd.DataFrame(columns=["name", "address", "lat", "lon", "phone", "source", "last_seen"])
     # … (same as before) – omitted here for brevity
     return pd.DataFrame()
