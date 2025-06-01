@@ -4,6 +4,7 @@ pandas
 overpy
 geocoder
 rapidfuzz
-shapely  # optional, used for GeoJSON export
+# optional: used for GeoJSON export
+shapely
 
 pyyaml
