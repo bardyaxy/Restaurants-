@@ -6,3 +6,4 @@ geocoder
 rapidfuzz
 shapely  # optional, used for GeoJSON export
 
+pyyaml
