@@ -17,14 +17,19 @@ This project collects restaurant information for ZIP codes around Olympia, Washi
 
 ## Setup
 
-1. Install dependencies:
+1. Install the project in editable mode (the `requests` dependency is
+   required for network operations):
    ```bash
-   pip install -r requirements.txt
+   pip install -e .
    ```
 2. Copy `.env.template` to `.env` and fill in your `GOOGLE_API_KEY`. Other keys are optional. Configuration is loaded via `config.py`.
-3. Run the script:
+3. Run the refresh command:
    ```bash
-   python refresh_restaurants.py
+   refresh-restaurants
+   ```
+   or
+   ```bash
+   python -m restaurants.refresh_restaurants
    ```
 
 The script currently targets a single ZIP code (`98501`). Adjust `TARGET_OLYMPIA_ZIPS` in `config.py` if you need additional areas.
@@ -41,6 +46,11 @@ categories. The script requests up to five Yelp search results for each
 restaurant and uses `rapidfuzz.fuzz.ratio` to compare the Yelp business name to
 the Google name. The highest scoring candidate above 70 is applied; otherwise
 the row remains unchanged and is marked as `FAIL`.
+
+Each matched Yelp business includes a list of food categories. Their aliases
+(e.g. `pizza`, `italian`) are written to the `yelp_cuisines` column as a
+comma‑separated string, with the first alias stored separately as
+`yelp_primary_cuisine`.
 
 ## Tests
 
