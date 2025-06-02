@@ -7,7 +7,10 @@ Clean Google SMB CSV and generate:
 
 import glob
 import pandas as pd
-from utils import haversine_miles
+import logging
+from utils import haversine_miles, setup_logging
+
+setup_logging()
 
 # ---------------------------------------------------------------------
 # 0.  Load the most-recent Google export
@@ -89,5 +92,6 @@ out_xlsx = "restaurants_prepped.xlsx"
 
 df.to_csv(out_csv,  index=False)
 df.to_excel(out_xlsx, index=False, engine="xlsxwriter")
-
-print(f"✅ Cleaned {newest} → {out_csv} & {out_xlsx}  ({len(df)} rows)")
+logging.info(
+    "Cleaned %s → %s & %s  (%s rows)", newest, out_csv, out_xlsx, len(df)
+)

@@ -1,5 +1,8 @@
 import re
 import math
+import os
+import sys
+import logging
 
 THIN_SPACE_CHARS = '\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a'
 
@@ -40,3 +43,24 @@ def normalize_hours(hours_dict: dict) -> dict:
             start = f"{start} {ampm.group(1).upper()}"
         out[day[:3]] = f"{start}{dash}{end.upper()}"
     return out
+
+
+def setup_logging(level: int = logging.INFO) -> None:
+    """Configure logging to stdout or a file.
+
+    If the ``LOG_FILE`` environment variable is set, log messages are written to
+    that file. Otherwise, logs are sent to standard output.
+    """
+
+    log_file = os.getenv("LOG_FILE")
+    handler: logging.Handler
+    if log_file:
+        handler = logging.FileHandler(log_file)
+    else:
+        handler = logging.StreamHandler(sys.stdout)
+
+    logging.basicConfig(
+        level=level,
+        format="%(asctime)s %(levelname)s: %(message)s",
+        handlers=[handler],
+    )
