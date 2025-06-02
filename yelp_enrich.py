@@ -8,6 +8,8 @@ from typing import Any
 
 import requests
 
+from network_utils import check_network
+
 # --------------------------------------------------------------------------- #
 # Config & setup
 # --------------------------------------------------------------------------- #
@@ -27,6 +29,10 @@ SEARCH_URL = "https://api.yelp.com/v3/businesses/search"
 def enrich() -> None:
     if not DB_PATH.exists():
         raise SystemExit(f"Database not found: {DB_PATH}")
+
+    if not check_network():
+        print("[WARN] Yelp enrichment skipped – network unreachable.")
+        return
 
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()

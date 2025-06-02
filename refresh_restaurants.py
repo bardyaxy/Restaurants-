@@ -3,6 +3,11 @@ import json
 import requests
 import pandas as pd
 from datetime import datetime, timezone
+import pathlib
+import sqlite3
+
+import loader
+import yelp_enrich
 
 from config import (
     GOOGLE_API_KEY,
@@ -225,6 +230,17 @@ def main() -> None:
     out_csv = f"olympia_smb_google_restaurants_{timestamp}.csv"
     df.to_csv(out_csv, index=False)
     print(f"Saved {len(df)} rows to {out_csv}")
+
+    csv_path = pathlib.Path(out_csv)
+    loader.load(csv_path)
+    yelp_enrich.enrich()
+
+    conn = sqlite3.connect(loader.DB_PATH)
+    df_db = pd.read_sql_query("SELECT * FROM places", conn)
+    final_csv = f"olympia_smb_google_restaurants_enriched_{timestamp}.csv"
+    df_db.to_csv(final_csv, index=False)
+    conn.close()
+    print(f"Saved enriched data to {final_csv}")
 
 
 if __name__ == "__main__":
