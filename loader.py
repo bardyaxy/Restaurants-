@@ -9,6 +9,9 @@ import argparse
 import sqlite3
 import pathlib
 import textwrap
+import logging
+
+from utils import setup_logging
 
 DB_PATH = pathlib.Path(__file__).with_name("dela.sqlite")
 
@@ -88,7 +91,7 @@ def load(csv_file: pathlib.Path) -> None:
 
     conn.commit()
     total = cur.execute("SELECT COUNT(*) FROM places").fetchone()[0]
-    print(f"✅  CSV loaded. Rows now in table: {total}")
+    logging.info("CSV loaded. Rows now in table: %s", total)
     conn.close()
 
 
@@ -103,4 +106,5 @@ if __name__ == "__main__":
     csv_path = pathlib.Path(args.csv).expanduser()
     if not csv_path.exists():
         raise FileNotFoundError(csv_path)
+    setup_logging()
     load(csv_path)

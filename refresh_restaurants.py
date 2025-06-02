@@ -5,6 +5,9 @@ import pandas as pd
 from datetime import datetime, timezone
 import pathlib
 import sqlite3
+import logging
+
+from utils import setup_logging
 
 import loader
 import yelp_enrich
@@ -58,7 +61,7 @@ def fetch_google_places() -> None:
     """Populate smb_restaurants_data with enriched Google Places SMB rows."""
 
     if not check_network():
-        print("[INFO] Skipping Google Places fetch due to no network connectivity.")
+        logging.info("Skipping Google Places fetch due to no network connectivity.")
         return
 
     text_url = "https://maps.googleapis.com/maps/api/place/textsearch/json"
@@ -66,20 +69,23 @@ def fetch_google_places() -> None:
 
     with requests.Session() as session:
         for zip_code in TARGET_OLYMPIA_ZIPS:
-            print(f"Fetching Google Places data for ZIP {zip_code}…")
+            logging.info("Fetching Google Places data for ZIP %s…", zip_code)
             params = {"key": GOOGLE_API_KEY, "query": f"restaurants in {zip_code} WA"}
             page = 1
             while True:
                 try:
                     resp = session.get(text_url, params=params, timeout=15)
-                    print(
-                        f"{zip_code} page {page} -> {resp.status_code} / {resp.json().get('status')}",
-                        flush=True,
+                    logging.info(
+                        "%s page %s -> %s / %s",
+                        zip_code,
+                        page,
+                        resp.status_code,
+                        resp.json().get("status"),
                     )
                     resp.raise_for_status()
                     data = resp.json()
                 except (requests.RequestException, json.JSONDecodeError) as exc:
-                    print(f"Error during Text Search for {zip_code}: {exc}")
+                    logging.error("Error during Text Search for %s: %s", zip_code, exc)
                     break
 
                 for result in data.get("results", []):
@@ -113,7 +119,7 @@ def fetch_google_places() -> None:
                         d_resp.raise_for_status()
                         details = d_resp.json().get("result", {})
                     except Exception as exc:
-                        print(f"  → Details failed for {name}: {exc}")
+                        logging.error("Details failed for %s: %s", name, exc)
 
                     # ----- Parse extra fields -----
                     opening_hours_raw = details.get("opening_hours", {}).get("weekday_text", [])
@@ -188,7 +194,7 @@ def fetch_google_places() -> None:
                 params = {"key": GOOGLE_API_KEY, "pagetoken": next_token}
                 page += 1
 
-    print(f"Collected {len(smb_restaurants_data)} SMB rows with enrichment.")
+    logging.info("Collected %s SMB rows with enrichment.", len(smb_restaurants_data))
 
 
 # -----------------------------------------------------------------------------
@@ -197,7 +203,7 @@ def fetch_google_places() -> None:
 # -----------------------------------------------------------------------------
 
 def fetch_gov_csvs():
-    print("[INFO] Government CSV import disabled in this trimmed script.")
+    logging.info("Government CSV import disabled in this trimmed script.")
     return pd.DataFrame(columns=["name", "address", "lat", "lon", "phone", "source", "last_seen"])
 
 
@@ -218,18 +224,19 @@ def fetch_osm():
 # -----------------------------------------------------------------------------
 
 def main() -> None:
+    setup_logging()
     smb_restaurants_data.clear()
     fetch_google_places()
 
     if not smb_restaurants_data:
-        print("No SMB restaurants found – nothing to write.")
+        logging.info("No SMB restaurants found – nothing to write.")
         return
 
     df = pd.DataFrame(smb_restaurants_data)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     out_csv = f"olympia_smb_google_restaurants_{timestamp}.csv"
     df.to_csv(out_csv, index=False)
-    print(f"Saved {len(df)} rows to {out_csv}")
+    logging.info("Saved %s rows to %s", len(df), out_csv)
 
     csv_path = pathlib.Path(out_csv)
     loader.load(csv_path)
@@ -240,7 +247,7 @@ def main() -> None:
     final_csv = f"olympia_smb_google_restaurants_enriched_{timestamp}.csv"
     df_db.to_csv(final_csv, index=False)
     conn.close()
-    print(f"Saved enriched data to {final_csv}")
+    logging.info("Saved enriched data to %s", final_csv)
 
 
 if __name__ == "__main__":
