@@ -6,6 +6,8 @@ import requests
 import pandas as pd
 from datetime import datetime, timezone
 
+MAX_PAGES = 6   # safety cap; tweak per need
+
 # -----------------------------------------------------------------------------
 # OPTIONAL DEPENDENCIES --------------------------------------------------------
 # -----------------------------------------------------------------------------
@@ -192,11 +194,11 @@ def fetch_google_places() -> None:
                         }
                     )
 
-            # ----- paging -----
+            # ----- paging (run once per Google response) -----
             next_token = data.get("next_page_token")
-            if not next_token:
-                break
-            time.sleep(2)  # Google requirement before using next_page_token
+            if not next_token or page >= MAX_PAGES:
+                break                    # no more pages or hit our safety cap
+            time.sleep(2)                # Google requires a short pause
             params = {"key": GOOGLE_API_KEY, "pagetoken": next_token}
             page += 1
 
