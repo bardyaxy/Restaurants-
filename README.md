@@ -10,6 +10,8 @@ This project collects restaurant information for ZIP codes around Olympia, Washi
 - **Deduplication routine** that merges results from all sources while prioritizing Google Places SMB entries.
 - **Network check** to gracefully skip online fetchers when offline.
 - Output saved as `olympia_smb_google_restaurants_<timestamp>.csv`.
+- Run `prep_restaurants.py` to clean the latest CSV and write
+  `restaurants_prepped.csv` and `restaurants_prepped.xlsx`.
 
 ## Setup
 
