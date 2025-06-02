@@ -31,4 +31,3 @@ The script currently targets a single ZIP code (`98501`). Adjust `TARGET_OLYMPIA
 
 1. Run `toast_leads.py` to gather additional restaurant leads. Ensure the `GOOGLE_API_KEY` environment variable is set before running.
 2. The script outputs an `olympia_toast_smb_<timestamp>.csv` and caches processed place IDs in `seen_place_ids.json` so only new results are fetched.
-3. The script requires the `pyyaml` package which is included in `requirements.txt`.
