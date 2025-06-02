@@ -38,13 +38,14 @@ def enrich() -> None:
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
 
-    # queue rows that were never touched *or* still have old open/closed labels
+    # queue rows that were never touched or are missing cuisines (old DB schema)
     rows = cur.execute(
         """
         SELECT place_id, name, city, state, lat, lon
         FROM   places
         WHERE  yelp_status IS NULL
            OR  yelp_status IN ('open','closed')
+           OR  yelp_cuisines IS NULL
         """
     ).fetchall()
 
