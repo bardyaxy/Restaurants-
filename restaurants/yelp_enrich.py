@@ -70,19 +70,28 @@ def enrich() -> None:
             fail += 1
             continue
 
+        cats = biz.get("categories") or []
+        aliases = [c.get("alias") for c in cats if c and c.get("alias")]
+        cuisines = ",".join(aliases) if aliases else None
+        primary_cuisine = aliases[0] if aliases else None
+
         cur.execute(
             """
             UPDATE places SET
-                yelp_rating     = ?,
-                yelp_reviews    = ?,
-                yelp_price_tier = ?,
-                yelp_status     = 'SUCCESS'
+                yelp_rating         = ?,
+                yelp_reviews        = ?,
+                yelp_price_tier     = ?,
+                yelp_cuisines       = ?,
+                yelp_primary_cuisine= ?,
+                yelp_status         = 'SUCCESS'
             WHERE place_id = ?
             """,
             (
                 biz.get("rating"),
                 biz.get("review_count"),
                 biz.get("price"),
+                cuisines,
+                primary_cuisine,
                 place_id,
             ),
         )
