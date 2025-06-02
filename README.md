@@ -48,6 +48,7 @@ only applies it when the score is at least 70. If no strong match is found and a
 phone number is available, the script falls back to a phone-based Yelp search.
 Rows without a valid match are left unchanged and marked as `FAIL`.
 
+
 Set `YELP_DEBUG=1` to print debug information about failed lookups, including
 all Yelp candidate names returned for each query.
 
