@@ -1,5 +1,8 @@
 import os
 import sqlite3
+import pytest
+
+pytest.importorskip("rapidfuzz")
 
 
 def test_enrich_exits_without_network(tmp_path, monkeypatch):
