@@ -19,12 +19,11 @@ newest = matches[-1]
 df = pd.read_csv(newest)
 
 # ---------------------------------------------------------------------
-# 1.  UTF-8 cleanup (narrow no-break space & en-dash)
+# 1.  UTF-8 cleanup (narrow no-break space)
 # ---------------------------------------------------------------------
 df["Opening Hours"] = (
     df["Opening Hours"]
       .str.replace("\u202f", " ", regex=False)   # NARROW NO-BREAK SPACE → space
-      .str.replace("\u2013", "-", regex=False)   # EN DASH → hyphen
 )
 
 # ---------------------------------------------------------------------
