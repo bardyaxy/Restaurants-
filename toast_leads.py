@@ -60,6 +60,8 @@ def save_seen_ids(ids: set[str], path: str = "seen_place_ids.json") -> None:
         json.dump(sorted(ids), f, indent=2)
 
 def fetch_details(place_id: str, session: requests.Session) -> dict:
+    # Concurrent workers share ``session`` and only issue GET requests,
+    # so it is safe to reuse the same session across threads.
     params = {
         "key": GOOGLE_API_KEY,
         "place_id": place_id,
