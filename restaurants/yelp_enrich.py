@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import pathlib
 import sqlite3
+import logging
 from typing import Any
 
 import requests
@@ -28,6 +29,7 @@ PHONE_SEARCH_URL = "https://api.yelp.com/v3/businesses/search/phone"
 
 MATCH_THRESHOLD = int(os.getenv("YELP_MATCH_THRESHOLD", "70"))
 DEBUG = bool(os.getenv("YELP_DEBUG"))
+logging.basicConfig(level=logging.DEBUG if DEBUG else logging.INFO)
 
 # --------------------------------------------------------------------------- #
 # Core logic
@@ -95,6 +97,15 @@ def enrich() -> None:
                 best_score = 100
 
         if not best or best_score < MATCH_THRESHOLD:
+            raw_results = biz_candidates
+            logging.debug(
+                "Yelp search for %r at (%s,%s) returned %d candidates: %s",
+                name,
+                lat,
+                lon,
+                len(raw_results),
+                [c.get("name") for c in raw_results],
+            )
             cur.execute(
                 "UPDATE places SET yelp_status='FAIL' WHERE place_id=?",
                 (place_id,),
