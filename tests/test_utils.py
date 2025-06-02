@@ -1,8 +1,6 @@
-import sys, pathlib
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 import pytest
 import math
-from utils import normalize_hours, haversine_miles
+from restaurants.utils import normalize_hours, haversine_miles
 
 
 def test_normalize_hours_basic():

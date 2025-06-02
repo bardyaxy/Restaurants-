@@ -1,0 +1,27 @@
+from setuptools import setup, find_packages
+
+setup(
+    name="olympia-restaurants",
+    version="0.1.0",
+    description="Aggregator for Olympia, WA restaurant data",
+    packages=find_packages(),
+    python_requires=">=3.9",
+    install_requires=[
+        "requests",
+        "python-dotenv",
+        "pandas",
+        "overpy",
+        "geocoder",
+        "rapidfuzz",
+        "shapely",
+        "pyyaml",
+        "XlsxWriter",
+    ],
+    entry_points={
+        "console_scripts": [
+            "refresh-restaurants=restaurants.refresh_restaurants:main",
+            "yelp-enrich=restaurants.yelp_enrich:enrich",
+            "toast-leads=restaurants.toast_leads:main",
+        ]
+    },
+)

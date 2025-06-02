@@ -1,12 +1,10 @@
-import sys, pathlib
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 import os
 import sqlite3
 
 
 def test_enrich_exits_without_network(tmp_path, monkeypatch):
     os.environ["YELP_API_KEY"] = "TEST"
-    import yelp_enrich
+    from restaurants import yelp_enrich
     tmp_db = tmp_path / "dela.sqlite"
     tmp_db.touch()
     monkeypatch.setattr(yelp_enrich, "DB_PATH", tmp_db)

@@ -1,8 +1,6 @@
-import sys, pathlib
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 import requests
 import pytest
-from network_utils import check_network
+from restaurants.network_utils import check_network
 
 
 def test_check_network_success(monkeypatch):
