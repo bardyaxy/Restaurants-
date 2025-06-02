@@ -52,12 +52,12 @@ df["Price"] = df["Price Level"].map(price_map).fillna("")
 # ---------------------------------------------------------------------
 BX_LAT, BX_LON = 47.6154255, -122.2035954      # Bellevue Square Mall
 
-
 def haversine_miles(lat1, lon1, lat2=BX_LAT, lon2=BX_LON):
-    R = 3959  # Earth radius in miles
+    """Great-circle distance in miles."""
+    R = 3959
     φ1, φ2 = math.radians(lat1), math.radians(lat2)
-    dφ = math.radians(lat2 - lat1)
-    dλ = math.radians(lon2 - lon1)
+    dφ  = math.radians(lat2 - lat1)
+    dλ  = math.radians(lon2 - lon1)
     a = math.sin(dφ/2)**2 + math.cos(φ1)*math.cos(φ2)*math.sin(dλ/2)**2
     return R * (2 * math.atan2(math.sqrt(a), math.sqrt(1 - a)))
 
@@ -68,11 +68,11 @@ df["Distance Miles"] = df.apply(
 # ---------------------------------------------------------------------
 # 5.  Quick lead-quality flags
 # ---------------------------------------------------------------------
-df["Has Phone"] = df["Formatted Phone Number"].str.len().gt(0).fillna(False)
+df["Has Phone"]   = df["Formatted Phone Number"].str.len().gt(0).fillna(False)
 df["Has Website"] = df["Website"].str.len().gt(0).fillna(False)
 
 # ---------------------------------------------------------------------
-# 6.  Drop bulky or duplicate columns
+# 6.  Drop bulky / duplicate columns
 # ---------------------------------------------------------------------
 drop_cols = [
     "Photo Reference",
@@ -88,10 +88,10 @@ df = df.drop(columns=[c for c in drop_cols if c in df.columns])
 # ---------------------------------------------------------------------
 # 7.  Save tidy outputs
 # ---------------------------------------------------------------------
-out_csv = "restaurants_prepped.csv"
+out_csv  = "restaurants_prepped.csv"
 out_xlsx = "restaurants_prepped.xlsx"
 
-df.to_csv(out_csv, index=False)
+df.to_csv(out_csv,  index=False)
 df.to_excel(out_xlsx, index=False, engine="xlsxwriter")
 
 print(f"✅ Cleaned {newest} → {out_csv} & {out_xlsx}  ({len(df)} rows)")
