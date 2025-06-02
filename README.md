@@ -59,7 +59,7 @@ simplest approach is to install the project in editable mode:
 
 ```bash
 pip install -e .
-pip install pytest
+pip install -r requirements-dev.txt
 pytest
 ```
 

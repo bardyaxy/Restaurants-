@@ -3,3 +3,6 @@ __pycache__/
 .env
 *.sqlite
 error.log
+# Ignore generated CSV outputs
+olympia_smb_google_restaurants_*.csv
+olympia_toast_smb_*.csv
