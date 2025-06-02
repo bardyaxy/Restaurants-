@@ -67,7 +67,8 @@ def test_enrich_inserts_categories(tmp_path, monkeypatch):
 
     conn = sqlite3.connect(tmp_db)
     row = conn.execute(
-        "SELECT yelp_cuisines, yelp_primary_cuisine FROM places WHERE place_id='pid1'"
+        "SELECT yelp_cuisines, yelp_primary_cuisine, yelp_status "
+        "FROM places WHERE place_id='pid1'"
     ).fetchone()
     conn.close()
-    assert row == ("pizza,italian", "pizza")
+    assert row == ("pizza,italian", "pizza", "SUCCESS")
