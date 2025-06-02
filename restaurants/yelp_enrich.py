@@ -1,4 +1,4 @@
-"""Add Yelp ratings, review counts, and price tiers to rows in dela.sqlite."""
+"""Add Yelp ratings, review counts, price tiers, and categories to dela.sqlite."""
 
 from __future__ import annotations
 
@@ -84,8 +84,10 @@ def enrich() -> None:
 
         cats = biz.get("categories") or []
         aliases = [c.get("alias") for c in cats if c and c.get("alias")]
+        titles = [c.get("title") for c in cats if c and c.get("title")]
         cuisines = ",".join(aliases) if aliases else None
         primary_cuisine = aliases[0] if aliases else None
+        category_titles = ",".join(titles) if titles else None
 
         cur.execute(
             """
@@ -95,6 +97,7 @@ def enrich() -> None:
                 yelp_price_tier     = ?,
                 yelp_cuisines       = ?,
                 yelp_primary_cuisine= ?,
+                yelp_category_titles= ?,
                 yelp_status         = 'SUCCESS'
             WHERE place_id = ?
             """,
@@ -104,6 +107,7 @@ def enrich() -> None:
                 biz.get("price"),
                 cuisines,
                 primary_cuisine,
+                category_titles,
                 place_id,
             ),
         )

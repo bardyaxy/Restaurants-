@@ -38,7 +38,7 @@ def test_ensure_db_adds_yelp_columns_fresh_db(tmp_path, monkeypatch):
     cols = {row[1] for row in cur.fetchall()}
     conn.close()
 
-    assert {"yelp_cuisines", "yelp_primary_cuisine"} <= cols
+    assert {"yelp_cuisines", "yelp_primary_cuisine", "yelp_category_titles"} <= cols
 
 
 def test_ensure_db_adds_yelp_columns_existing_db(tmp_path, monkeypatch):
@@ -57,7 +57,7 @@ def test_ensure_db_adds_yelp_columns_existing_db(tmp_path, monkeypatch):
     cols = {row[1] for row in cur.fetchall()}
     conn.close()
 
-    assert {"yelp_cuisines", "yelp_primary_cuisine"} <= cols
+    assert {"yelp_cuisines", "yelp_primary_cuisine", "yelp_category_titles"} <= cols
 
 
 def test_ensure_db_updates_partial_schema(tmp_path, monkeypatch):
@@ -76,4 +76,4 @@ def test_ensure_db_updates_partial_schema(tmp_path, monkeypatch):
     conn = sqlite3.connect(tmp_db)
     cols = {row[1] for row in conn.execute("PRAGMA table_info(places)")}
     conn.close()
-    assert {"yelp_cuisines", "yelp_primary_cuisine"} <= cols
+    assert {"yelp_cuisines", "yelp_primary_cuisine", "yelp_category_titles"} <= cols
