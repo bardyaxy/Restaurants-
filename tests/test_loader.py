@@ -58,3 +58,22 @@ def test_ensure_db_adds_yelp_columns_existing_db(tmp_path, monkeypatch):
     conn.close()
 
     assert {"yelp_cuisines", "yelp_primary_cuisine"} <= cols
+
+
+def test_ensure_db_updates_partial_schema(tmp_path, monkeypatch):
+    """Ensure missing Yelp columns are added to an existing DB."""
+    tmp_db = tmp_path / "dela.sqlite"
+    conn = sqlite3.connect(tmp_db)
+    conn.execute(
+        "CREATE TABLE places (place_id TEXT PRIMARY KEY, name TEXT, category TEXT)"
+    )
+    conn.close()
+
+    monkeypatch.setattr(loader, "DB_PATH", tmp_db)
+    conn = loader.ensure_db()
+    conn.close()
+
+    conn = sqlite3.connect(tmp_db)
+    cols = {row[1] for row in conn.execute("PRAGMA table_info(places)")}
+    conn.close()
+    assert {"yelp_cuisines", "yelp_primary_cuisine"} <= cols
