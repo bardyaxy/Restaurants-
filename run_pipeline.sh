@@ -3,7 +3,7 @@ set -e
 python refresh_restaurants.py
 
 # Find the newest Google restaurants CSV if it exists
-latest=$(ls -t *_google_restaurants_*.csv 2>/dev/null | head -1)
+latest=$(ls -t *_google_restaurants_*.csv 2>/dev/null | head -1 || true)
 
 # Exit early if no new files were created
 if [[ -z "$latest" ]]; then
