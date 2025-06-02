@@ -8,12 +8,12 @@ from typing import Any
 
 import requests
 
-from network_utils import check_network
-
-# --------------------------------------------------------------------------- #
-# Config & setup
-# --------------------------------------------------------------------------- #
-from config import YELP_API_KEY
+try:
+    from restaurants.network_utils import check_network
+    from restaurants.config import YELP_API_KEY
+except Exception:  # pragma: no cover - fallback for running as script
+    from network_utils import check_network
+    from config import YELP_API_KEY
 
 DB_PATH = pathlib.Path(__file__).with_name("dela.sqlite")
 

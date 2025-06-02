@@ -7,18 +7,28 @@ import pathlib
 import sqlite3
 import logging
 
-from utils import setup_logging
-
-import loader
-import yelp_enrich
-
-from config import (
-    GOOGLE_API_KEY,
-    TARGET_OLYMPIA_ZIPS,
-    OLYMPIA_LAT,
-    OLYMPIA_LON,
-)
-
+try:
+    from restaurants.utils import setup_logging, normalize_hours, haversine_miles
+    from restaurants import loader, yelp_enrich
+    from restaurants.config import (
+        GOOGLE_API_KEY,
+        TARGET_OLYMPIA_ZIPS,
+        OLYMPIA_LAT,
+        OLYMPIA_LON,
+    )
+    from restaurants.chain_blocklist import CHAIN_BLOCKLIST
+    from restaurants.network_utils import check_network
+except Exception:  # pragma: no cover - fallback for running as script
+    from utils import setup_logging, normalize_hours, haversine_miles
+    import loader
+    import yelp_enrich
+    from config import (
+        GOOGLE_API_KEY,
+        TARGET_OLYMPIA_ZIPS,
+        OLYMPIA_LAT,
+        OLYMPIA_LON,
+    )
+    from chain_blocklist import CHAIN_BLOCKLIST  # list of substrings that ID big chains
 MAX_PAGES = 6   # safety cap; tweak per need
 
 # -----------------------------------------------------------------------------
@@ -33,9 +43,7 @@ except ImportError:
 # -----------------------------------------------------------------------------
 # LOCAL MODULES ----------------------------------------------------------------
 # -----------------------------------------------------------------------------
-from chain_blocklist import CHAIN_BLOCKLIST  # list of substrings that ID big chains
-from network_utils import check_network
-from utils import normalize_hours, haversine_miles
+
 
 # Data store for Google Places results
 smb_restaurants_data: list[dict] = []

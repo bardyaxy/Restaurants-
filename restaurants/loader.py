@@ -11,7 +11,10 @@ import pathlib
 import textwrap
 import logging
 
-from utils import setup_logging
+try:
+    from restaurants.utils import setup_logging
+except Exception:  # pragma: no cover - fallback for running as script
+    from utils import setup_logging
 
 DB_PATH = pathlib.Path(__file__).with_name("dela.sqlite")
 
@@ -75,16 +78,14 @@ RENAMES = {
 def ensure_db() -> sqlite3.Connection:
     """Create dela.sqlite and the places table if they don’t exist yet."""
     conn = sqlite3.connect(DB_PATH)
+    conn.executescript(SCHEMA)
     cur = conn.cursor()
     cur.execute("PRAGMA table_info(places)")
     cols = {row[1] for row in cur.fetchall()}
-    if not cols:
-        conn.executescript(SCHEMA)
-    else:
-        if "categories" not in cols:
-            cur.execute("ALTER TABLE places ADD COLUMN categories TEXT")
-        if "category" not in cols:
-            cur.execute("ALTER TABLE places ADD COLUMN category TEXT")
+    if "categories" not in cols:
+        cur.execute("ALTER TABLE places ADD COLUMN categories TEXT")
+    if "category" not in cols:
+        cur.execute("ALTER TABLE places ADD COLUMN category TEXT")
     conn.commit()
     return conn
 

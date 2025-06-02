@@ -8,7 +8,10 @@ Clean Google SMB CSV and generate:
 import glob
 import pandas as pd
 import logging
-from utils import haversine_miles, setup_logging
+try:
+    from restaurants.utils import haversine_miles, setup_logging
+except Exception:  # pragma: no cover - fallback for running as script
+    from utils import haversine_miles, setup_logging
 
 setup_logging()
 
