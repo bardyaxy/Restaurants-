@@ -45,7 +45,9 @@ CREATE TABLE IF NOT EXISTS places (
   yelp_rating REAL,
   yelp_reviews INTEGER,
   yelp_price_tier TEXT,
-  yelp_status TEXT
+  yelp_status TEXT,
+  yelp_cuisines TEXT,
+  yelp_primary_cuisine TEXT
 );
 """)
 
@@ -86,6 +88,10 @@ def ensure_db() -> sqlite3.Connection:
         cur.execute("ALTER TABLE places ADD COLUMN categories TEXT")
     if "category" not in cols:
         cur.execute("ALTER TABLE places ADD COLUMN category TEXT")
+    if "yelp_cuisines" not in cols:
+        cur.execute("ALTER TABLE places ADD COLUMN yelp_cuisines TEXT")
+    if "yelp_primary_cuisine" not in cols:
+        cur.execute("ALTER TABLE places ADD COLUMN yelp_primary_cuisine TEXT")
     conn.commit()
     return conn
 
