@@ -36,8 +36,14 @@ The script currently targets a single ZIP code (`98501`). Adjust `TARGET_OLYMPIA
 
 ## Tests
 
-To run the unit tests, install pytest and execute:
+Ensure the `restaurants` package is importable before running the tests. The
+simplest approach is to install the project in editable mode:
+
 ```bash
+pip install -e .
 pip install pytest
 pytest
 ```
+
+Alternatively you can adjust `PYTHONPATH` so the `restaurants` imports in the
+tests resolve.
