@@ -1,6 +1,6 @@
-import requests
+from tests import requests_stub
 import pytest
-from restaurants.network_utils import check_network
+import restaurants.network_utils as network_utils
 
 
 def test_check_network_success(monkeypatch):
@@ -10,16 +10,18 @@ def test_check_network_success(monkeypatch):
 
         return Resp()
 
-    monkeypatch.setattr(requests, "get", dummy_get)
-    assert check_network()
+    monkeypatch.setattr(requests_stub, "get", dummy_get)
+    monkeypatch.setattr(network_utils, "requests", requests_stub)
+    assert network_utils.check_network()
 
 
 def test_check_network_failure(monkeypatch):
     def dummy_get(url, timeout, allow_redirects):
-        raise requests.RequestException
+        raise requests_stub.RequestException
 
-    monkeypatch.setattr(requests, "get", dummy_get)
-    assert not check_network()
+    monkeypatch.setattr(requests_stub, "get", dummy_get)
+    monkeypatch.setattr(network_utils, "requests", requests_stub)
+    assert not network_utils.check_network()
 
 
 def test_check_network_head(monkeypatch):
@@ -29,5 +31,6 @@ def test_check_network_head(monkeypatch):
 
         return Resp()
 
-    monkeypatch.setattr(requests, "head", dummy_head)
-    assert check_network(method="HEAD")
+    monkeypatch.setattr(requests_stub, "head", dummy_head)
+    monkeypatch.setattr(network_utils, "requests", requests_stub)
+    assert network_utils.check_network(method="HEAD")
