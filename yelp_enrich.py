@@ -1,10 +1,3 @@
-Copy-paste this version over **yelp\_enrich.py**.
-
-* Queues any rows that still have the old `open`/`closed` labels
-* Writes `SUCCESS` for matches, `FAIL` for no match
-* Prints a clean summary
-
-```python
 """Add Yelp ratings, review counts, and price tiers to rows in dela.sqlite."""
 
 from __future__ import annotations
@@ -104,4 +97,3 @@ def enrich() -> None:
 
 if __name__ == "__main__":
     enrich()
-```
