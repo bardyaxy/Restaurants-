@@ -186,3 +186,54 @@ def test_enrich_no_candidate_above_threshold(tmp_path, monkeypatch):
         "SELECT yelp_status FROM places WHERE place_id='pid2'"
     ).fetchone()
     assert row == ("FAIL",)
+
+
+def test_enrich_retries_missing_categories(tmp_path, monkeypatch):
+    """Rows lacking cuisines should be reprocessed even if yelp_status is set."""
+    os.environ["YELP_API_KEY"] = "TEST"
+    os.environ.setdefault("GOOGLE_API_KEY", "DUMMY")
+    from restaurants import loader, yelp_enrich
+
+    tmp_db = tmp_path / "dela.sqlite"
+    monkeypatch.setattr(loader, "DB_PATH", tmp_db)
+    conn = loader.ensure_db()
+    conn.execute(
+        "INSERT INTO places (place_id, name, city, state, yelp_status) VALUES (?,?,?,?,?)",
+        ("pid3", "Retry", "Olympia", "WA", "SUCCESS"),
+    )
+    conn.commit()
+    conn.close()
+
+    monkeypatch.setattr(yelp_enrich, "DB_PATH", tmp_db)
+    monkeypatch.setattr(yelp_enrich, "check_network", lambda: True)
+
+    def dummy_get(url, headers, params, timeout):
+        class Resp:
+            @staticmethod
+            def raise_for_status():
+                pass
+
+            @staticmethod
+            def json():
+                return {
+                    "businesses": [
+                        {
+                            "name": "Retry",
+                            "rating": 4.0,
+                            "review_count": 8,
+                            "price": "$",
+                            "categories": [{"alias": "thai", "title": "Thai"}],
+                        }
+                    ]
+                }
+
+        return Resp()
+
+    monkeypatch.setattr(yelp_enrich.requests, "get", dummy_get)
+
+    yelp_enrich.enrich()
+
+    row = sqlite3.connect(tmp_db).execute(
+        "SELECT yelp_cuisines, yelp_primary_cuisine FROM places WHERE place_id='pid3'"
+    ).fetchone()
+    assert row == ("thai", "thai")
