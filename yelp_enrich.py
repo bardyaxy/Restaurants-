@@ -1,3 +1,10 @@
+Copy-paste this version over **yelp\_enrich.py**.
+
+* Queues any rows that still have the old `open`/`closed` labels
+* Writes `SUCCESS` for matches, `FAIL` for no match
+* Prints a clean summary
+
+```python
 """Add Yelp ratings, review counts, and price tiers to rows in dela.sqlite."""
 
 from __future__ import annotations
@@ -18,7 +25,7 @@ except Exception:  # pragma: no cover
     def load_dotenv(*_a: Any, **_kw: Any) -> None:  # fallback no-op
         pass
 
-load_dotenv()  # .env file (if present) → environment
+load_dotenv()  # pull vars from .env if present
 
 DB_PATH = pathlib.Path(__file__).with_name("dela.sqlite")
 YELP_API_KEY = os.getenv("YELP_API_KEY")
@@ -39,15 +46,18 @@ def enrich() -> None:
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
 
+    # queue rows that were never touched *or* still have old open/closed labels
     rows = cur.execute(
-        "SELECT place_id, name, city, state, lat, lon "
-        "FROM   places "
-        "WHERE  yelp_status IS NULL"  # queue only untouched rows
+        """
+        SELECT place_id, name, city, state, lat, lon
+        FROM   places
+        WHERE  yelp_status IS NULL
+           OR  yelp_status IN ('open','closed')
+        """
     ).fetchall()
 
     success, fail = 0, 0
     for place_id, name, city, state, lat, lon in rows:
-        # Build Yelp search params
         params: dict[str, Any] = {"term": name, "limit": 1}
         if lat is not None and lon is not None:
             params.update({"latitude": lat, "longitude": lon})
@@ -59,7 +69,7 @@ def enrich() -> None:
             r.raise_for_status()
             biz = (r.json().get("businesses") or [None])[0]
         except Exception:
-            biz = None  # network or JSON error → treat as no match
+            biz = None  # network / JSON error → treat as no match
 
         if not biz:
             cur.execute(
@@ -72,10 +82,10 @@ def enrich() -> None:
         cur.execute(
             """
             UPDATE places SET
-                yelp_rating      = ?,
-                yelp_reviews     = ?,
-                yelp_price_tier  = ?,
-                yelp_status      = 'SUCCESS'
+                yelp_rating     = ?,
+                yelp_reviews    = ?,
+                yelp_price_tier = ?,
+                yelp_status     = 'SUCCESS'
             WHERE place_id = ?
             """,
             (
@@ -89,8 +99,9 @@ def enrich() -> None:
 
     conn.commit()
     conn.close()
-    print(f"✅ Yelp enrichment done. SUCCESS: {success}, FAIL: {fail}")
+    print(f"✅ Yelp enrichment done —  SUCCESS: {success}  |  FAIL: {fail}")
 
 
 if __name__ == "__main__":
     enrich()
+```
