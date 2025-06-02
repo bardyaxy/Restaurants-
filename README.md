@@ -17,14 +17,19 @@ This project collects restaurant information for ZIP codes around Olympia, Washi
 
 ## Setup
 
-1. Install dependencies:
+1. Install the project in editable mode (the `requests` dependency is
+   required for network operations):
    ```bash
-   pip install -r requirements.txt
+   pip install -e .
    ```
 2. Copy `.env.template` to `.env` and fill in your `GOOGLE_API_KEY`. Other keys are optional. Configuration is loaded via `config.py`.
-3. Run the script:
+3. Run the refresh command:
    ```bash
-   python refresh_restaurants.py
+   refresh-restaurants
+   ```
+   or
+   ```bash
+   python -m restaurants.refresh_restaurants
    ```
 
 The script currently targets a single ZIP code (`98501`). Adjust `TARGET_OLYMPIA_ZIPS` in `config.py` if you need additional areas.
