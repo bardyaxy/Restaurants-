@@ -34,6 +34,14 @@ The script currently targets a single ZIP code (`98501`). Adjust `TARGET_OLYMPIA
 1. Run `toast_leads.py` to gather additional restaurant leads. Ensure the `GOOGLE_API_KEY` environment variable is set before running.
 2. The script outputs an `olympia_toast_smb_<timestamp>.csv` and caches processed place IDs in `seen_place_ids.json` so only new results are fetched.
 
+## Yelp enrichment
+
+Run `yelp_enrich.py` to supplement Google Places rows with Yelp ratings and
+categories. The script requests up to five Yelp search results for each
+restaurant and uses `rapidfuzz.fuzz.ratio` to compare the Yelp business name to
+the Google name. The highest scoring candidate above 70 is applied; otherwise
+the row remains unchanged and is marked as `FAIL`.
+
 ## Tests
 
 Ensure the `restaurants` package is importable before running the tests. The

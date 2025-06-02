@@ -7,6 +7,7 @@ import sqlite3
 from typing import Any
 
 import requests
+from rapidfuzz import fuzz
 
 try:
     from restaurants.network_utils import check_network
@@ -49,7 +50,7 @@ def enrich() -> None:
 
     success, fail = 0, 0
     for place_id, name, city, state, lat, lon in rows:
-        params: dict[str, Any] = {"term": name, "limit": 1}
+        params: dict[str, Any] = {"term": name, "limit": 5}
         if lat is not None and lon is not None:
             params.update({"latitude": lat, "longitude": lon})
         else:
@@ -58,17 +59,27 @@ def enrich() -> None:
         try:
             r = requests.get(SEARCH_URL, headers=HEADERS, params=params, timeout=10)
             r.raise_for_status()
-            biz = (r.json().get("businesses") or [None])[0]
+            biz_candidates = r.json().get("businesses") or []
         except Exception:
-            biz = None  # network / JSON error → treat as no match
+            biz_candidates = []  # network / JSON error → treat as no match
 
-        if not biz:
+        best, best_score = None, 0
+        for cand in biz_candidates:
+            cand_name = cand.get("name") or ""
+            score = fuzz.ratio(name, cand_name)
+            if score > best_score:
+                best_score = score
+                best = cand
+
+        if not best or best_score < 70:
             cur.execute(
                 "UPDATE places SET yelp_status='FAIL' WHERE place_id=?",
                 (place_id,),
             )
             fail += 1
             continue
+
+        biz = best
 
         cats = biz.get("categories") or []
         aliases = [c.get("alias") for c in cats if c and c.get("alias")]
