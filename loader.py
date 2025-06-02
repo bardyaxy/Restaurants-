@@ -1,4 +1,14 @@
-import csv, sqlite3, argparse, pathlib, textwrap
+"""
+Load a Google-Places CSV into dela.sqlite
+
+Usage:
+    python loader.py path/to/file.csv
+"""
+import csv
+import argparse
+import sqlite3
+import pathlib
+import textwrap
 
 DB_PATH = pathlib.Path(__file__).with_name("dela.sqlite")
 
@@ -32,49 +42,65 @@ CREATE TABLE IF NOT EXISTS places (
 """)
 
 RENAMES = {
-  "Place ID": "place_id",
-  "Name": "name",
-  "Formatted Address": "formatted_address",
-  "City": "city",
-  "State": "state",
-  "Zip Code": "zip_code",
-  "lat": "lat",
-  "lon": "lon",
-  "Rating": "rating",
-  "User Ratings Total": "user_ratings_total",
-  "Price Level": "price_level",
-  "Business Status": "business_status",
-  "Formatted Phone Number": "local_phone",
-  "International Phone Number": "intl_phone",
-  "Website": "website",
-  "Photo Reference": "photo_ref",
-  "Distance Miles": "distance_miles",
-  "source": "source"
+    "Place ID": "place_id",
+    "Name": "name",
+    "Formatted Address": "formatted_address",
+    "City": "city",
+    "State": "state",
+    "Zip Code": "zip_code",
+    "lat": "lat",
+    "lon": "lon",
+    "Rating": "rating",
+    "User Ratings Total": "user_ratings_total",
+    "Price Level": "price_level",
+    "Business Status": "business_status",
+    "Formatted Phone Number": "local_phone",
+    "International Phone Number": "intl_phone",
+    "Website": "website",
+    "Photo Reference": "photo_ref",
+    "Distance Miles": "distance_miles",
+    "source": "source"
 }
 
-def ensure_db():
+# --------------------------------------------------------------------------- #
+# Helpers
+# --------------------------------------------------------------------------- #
+def ensure_db() -> sqlite3.Connection:
+    """Create dela.sqlite and the places table if they don’t exist yet."""
     conn = sqlite3.connect(DB_PATH)
     conn.executescript(SCHEMA)
     conn.commit()
-    conn.close()
+    return conn
 
-def load(csv_path):
-    ensure_db()
-    conn = sqlite3.connect(DB_PATH)
-    cur  = conn.cursor()
+
+def load(csv_file: pathlib.Path) -> None:
+    """Insert rows from the CSV into the places table (dedup on place_id)."""
+    conn = ensure_db()
+    cur = conn.cursor()
+
     cols = ", ".join(RENAMES.values())
-    qs   = ", ".join("?" * len(RENAMES))
+    qs = ", ".join(["?"] * len(RENAMES))
     insert_sql = f"INSERT OR IGNORE INTO places ({cols}) VALUES ({qs})"
-    with open(csv_path, newline='', encoding='utf-8') as f:
+
+    with csv_file.open(newline="", encoding="utf-8") as f:
         for row in csv.DictReader(f):
-            cur.execute(insert_sql, [row.get(c) for c in RENAMES])
+            cur.execute(insert_sql, [row.get(k) for k in RENAMES])
+
     conn.commit()
-    print("✅  CSV loaded. Rows now:",
-          cur.execute("SELECT COUNT(*) FROM places").fetchone()[0])
+    total = cur.execute("SELECT COUNT(*) FROM places").fetchone()[0]
+    print(f"✅  CSV loaded. Rows now in table: {total}")
     conn.close()
 
+
+# --------------------------------------------------------------------------- #
+# CLI
+# --------------------------------------------------------------------------- #
 if __name__ == "__main__":
-    ap = argparse.ArgumentParser(description="Load a Google-Places CSV into dela.sqlite")
-    ap.add_argument("csv", help="Path to CSV produced by refresh_restaurants.py")
-    args = ap.parse_args()
-    load(args.csv)
+    parser = argparse.ArgumentParser(description="Load a Google-Places CSV into dela.sqlite")
+    parser.add_argument("csv", help="Path to CSV produced by refresh_restaurants.py")
+    args = parser.parse_args()
+
+    csv_path = pathlib.Path(args.csv).expanduser()
+    if not csv_path.exists():
+        raise FileNotFoundError(csv_path)
+    load(csv_path)
