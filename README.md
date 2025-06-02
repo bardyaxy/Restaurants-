@@ -8,7 +8,9 @@ This project collects restaurant information for ZIP codes around Olympia, Washi
 - **Government CSV importer** *(disabled)* for Washington health and Thurston County license data.
 - **OpenStreetMap fetcher** *(disabled)* for additional restaurant listings.
 - **Deduplication routine** that merges results from all sources while prioritizing Google Places SMB entries.
-- **Network check** to gracefully skip online fetchers when offline.
+- **Network check** using a lightweight GET request to gracefully skip online
+  fetchers when offline. Some corporate networks block HEAD requests, so the
+  check avoids them by default.
 - Output saved as `olympia_smb_google_restaurants_<timestamp>.csv`.
 - Run `prep_restaurants.py` to clean the latest CSV and write
   `restaurants_prepped.csv` and `restaurants_prepped.xlsx`.
