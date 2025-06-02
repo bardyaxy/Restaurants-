@@ -5,7 +5,6 @@ import math
 import requests
 import pandas as pd
 from datetime import datetime, timezone
-import overpy
 
 # -----------------------------------------------------------------------------
 # OPTIONAL DEPENDENCIES --------------------------------------------------------
