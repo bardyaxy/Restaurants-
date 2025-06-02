@@ -10,18 +10,21 @@ import requests
 # ---------------------------------------------------------------------------
 # 0.  Setup
 # ---------------------------------------------------------------------------
-from config import GOOGLE_API_KEY, TARGET_OLYMPIA_ZIPS
-
 try:
-    from chain_blocklist import CHAIN_BLOCKLIST            # names to skip
-except Exception:
-    CHAIN_BLOCKLIST = []
-
-try:
-    from network_utils import check_network                # simple ping check
-except Exception:
-    def check_network() -> bool:
-        return True
+    from restaurants.config import GOOGLE_API_KEY, TARGET_OLYMPIA_ZIPS
+    from restaurants.chain_blocklist import CHAIN_BLOCKLIST            # names to skip
+    from restaurants.network_utils import check_network                # simple ping check
+except Exception:  # pragma: no cover - fallback when running as script
+    from config import GOOGLE_API_KEY, TARGET_OLYMPIA_ZIPS
+    try:
+        from chain_blocklist import CHAIN_BLOCKLIST
+    except Exception:
+        CHAIN_BLOCKLIST = []
+    try:
+        from network_utils import check_network
+    except Exception:
+        def check_network() -> bool:
+            return True
 
 SEARCH_URL  = "https://maps.googleapis.com/maps/api/place/textsearch/json"
 DETAILS_URL = "https://maps.googleapis.com/maps/api/place/details/json"
