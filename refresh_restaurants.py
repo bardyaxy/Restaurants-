@@ -26,6 +26,7 @@ except ImportError:
 # -----------------------------------------------------------------------------
 from chain_blocklist import CHAIN_BLOCKLIST  # list of substrings that ID big chains
 from network_utils import check_network
+from utils import normalize_hours
 
 # Data store for Google Places results
 smb_restaurants_data: list[dict] = []
@@ -129,9 +130,24 @@ def fetch_google_places() -> None:
                     print(f"  → Details failed for {name}: {exc}")
 
                 # ----- Parse extra fields -----
-                opening_hours = details.get("opening_hours", {}).get("weekday_text", [])
+                opening_hours_raw = details.get("opening_hours", {}).get("weekday_text", [])
                 photos = details.get("photos", [])
                 addr_comps = details.get("address_components", [])
+
+                def _parse_hours(items: list[str]) -> dict:
+                    out: dict[str, str] = {}
+                    for seg in items:
+                        if ":" not in seg:
+                            continue
+                        day, times = seg.split(":", 1)
+                        out[day.strip()] = times.strip()
+                    return out
+
+                hours_dict = (
+                    normalize_hours(_parse_hours(opening_hours_raw))
+                    if opening_hours_raw
+                    else {}
+                )
 
                 def _ac(key: str):
                     for comp in addr_comps:
@@ -145,7 +161,11 @@ def fetch_google_places() -> None:
                     "Formatted Phone Number": details.get("formatted_phone_number"),
                     "International Phone Number": details.get("international_phone_number"),
                     "Website": details.get("website"),
-                    "Opening Hours": "; ".join(opening_hours) if opening_hours else None,
+                    "Opening Hours": (
+                        "; ".join(f"{d}: {t}" for d, t in hours_dict.items())
+                        if hours_dict
+                        else None
+                    ),
                     "Price Level": details.get("price_level"),
                     "Types": ",".join(details.get("types", [])),
                     "Photo Reference": photos[0].get("photo_reference") if photos else None,
