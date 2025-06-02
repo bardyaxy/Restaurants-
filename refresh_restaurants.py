@@ -157,18 +157,13 @@ def fetch_google_places() -> None:
                     }
 
                     # distance from Olympia center
-                    if basic_row["lat"] is not None and basic_row["lon"] is not None:
-                        enriched["Distance Miles"] = round(
-                            haversine_miles(
-                                OLYMPIA_LAT,
-                                OLYMPIA_LON,
-                                basic_row["lat"],
-                                basic_row["lon"],
-                            ),
-                            2,
-                        )
-                    else:
-                        enriched["Distance Miles"] = None
+                    dist = haversine_miles(
+                        OLYMPIA_LAT,
+                        OLYMPIA_LON,
+                        basic_row["lat"],
+                        basic_row["lon"],
+                    )
+                    enriched["Distance Miles"] = round(dist, 2) if dist is not None else None
 
                     # final row
                     smb_restaurants_data.append(
