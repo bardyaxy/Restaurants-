@@ -123,12 +123,17 @@ def fetch_google_places() -> None:
                         ),
                     }
                     details = {}
-                    try:
-                        d_resp = session.get(details_url, params=det_params, timeout=15)
-                        d_resp.raise_for_status()
-                        details = d_resp.json().get("result", {})
-                    except Exception as exc:
-                        logging.error("Details failed for %s: %s", name, exc)
+                    for attempt in range(3):
+                        try:
+                            d_resp = session.get(details_url, params=det_params, timeout=15)
+                            d_resp.raise_for_status()
+                            details = d_resp.json().get("result", {})
+                            break
+                        except Exception as exc:
+                            if attempt == 2:
+                                logging.error("Details failed for %s: %s", name, exc)
+                            else:
+                                time.sleep(1)
 
                     # ----- Parse extra fields -----
                     opening_hours_raw = details.get("opening_hours", {}).get("weekday_text", [])
