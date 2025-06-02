@@ -26,6 +26,7 @@ HEADERS = {"Authorization": f"Bearer {YELP_API_KEY}"}
 SEARCH_URL = "https://api.yelp.com/v3/businesses/search"
 
 MATCH_THRESHOLD = int(os.getenv("YELP_MATCH_THRESHOLD", "70"))
+DEBUG = bool(os.getenv("YELP_DEBUG"))
 
 # --------------------------------------------------------------------------- #
 # Core logic
@@ -86,11 +87,15 @@ def enrich() -> None:
         biz = best
 
         cats = biz.get("categories") or []
+        if DEBUG:
+            print(f"[DBG] biz categories for {place_id}: {cats}")
         aliases = [c.get("alias") for c in cats if c and c.get("alias")]
         titles = [c.get("title") for c in cats if c and c.get("title")]
         cuisines = ",".join(aliases) if aliases else None
         primary_cuisine = aliases[0] if aliases else None
         category_titles = ",".join(titles) if titles else None
+        if DEBUG:
+            print(f"[DBG] storing yelp_category_titles: {category_titles!r}")
 
         cur.execute(
             """
