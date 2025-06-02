@@ -22,3 +22,14 @@ def test_check_network_failure(monkeypatch):
 
     monkeypatch.setattr(requests, "get", dummy_get)
     assert not check_network()
+
+
+def test_check_network_head(monkeypatch):
+    def dummy_head(url, timeout):
+        class Resp:
+            pass
+
+        return Resp()
+
+    monkeypatch.setattr(requests, "head", dummy_head)
+    assert check_network(method="HEAD")
