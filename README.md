@@ -47,6 +47,11 @@ restaurant and uses `rapidfuzz.fuzz.ratio` to compare the Yelp business name to
 the Google name. The highest scoring candidate above 70 is applied; otherwise
 the row remains unchanged and is marked as `FAIL`.
 
+Each matched Yelp business includes a list of food categories. Their aliases
+(e.g. `pizza`, `italian`) are written to the `yelp_cuisines` column as a
+comma‑separated string, with the first alias stored separately as
+`yelp_primary_cuisine`.
+
 ## Tests
 
 Ensure the `restaurants` package is importable before running the tests. The
