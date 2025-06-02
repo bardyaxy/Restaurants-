@@ -1,32 +1,37 @@
-"""Add Yelp ratings and prices to existing entries in dela.sqlite."""
+"""Add Yelp ratings, review counts, and price tiers to rows in dela.sqlite."""
 
 from __future__ import annotations
 
 import os
-import sqlite3
 import pathlib
+import sqlite3
 from typing import Any
 
 import requests
 
+# --------------------------------------------------------------------------- #
+# Config & setup
+# --------------------------------------------------------------------------- #
 try:
-    from dotenv import load_dotenv
-except Exception:
-    def load_dotenv(*_args: Any, **_kwargs: Any) -> None:
+    from dotenv import load_dotenv  # type: ignore
+except Exception:  # pragma: no cover
+    def load_dotenv(*_a: Any, **_kw: Any) -> None:  # fallback no-op
         pass
 
-load_dotenv()
+load_dotenv()  # .env file (if present) → environment
 
 DB_PATH = pathlib.Path(__file__).with_name("dela.sqlite")
 YELP_API_KEY = os.getenv("YELP_API_KEY")
 
 if not YELP_API_KEY:
-    raise SystemExit("Warning: YELP_API_KEY environment variable not set")
+    raise SystemExit("⚠️  Set YELP_API_KEY first (env var or .env file)")
 
 HEADERS = {"Authorization": f"Bearer {YELP_API_KEY}"}
 SEARCH_URL = "https://api.yelp.com/v3/businesses/search"
 
-
+# --------------------------------------------------------------------------- #
+# Core logic
+# --------------------------------------------------------------------------- #
 def enrich() -> None:
     if not DB_PATH.exists():
         raise SystemExit(f"Database not found: {DB_PATH}")
@@ -35,45 +40,48 @@ def enrich() -> None:
     cur = conn.cursor()
 
     rows = cur.execute(
-        "SELECT place_id, name, city, state, lat, lon FROM places"
+        "SELECT place_id, name, city, state, lat, lon "
+        "FROM   places "
+        "WHERE  yelp_status IS NULL"  # queue only untouched rows
     ).fetchall()
 
-    success = 0
+    success, fail = 0, 0
     for place_id, name, city, state, lat, lon in rows:
+        # Build Yelp search params
         params: dict[str, Any] = {"term": name, "limit": 1}
         if lat is not None and lon is not None:
             params.update({"latitude": lat, "longitude": lon})
-        elif city or state:
-            loc = ", ".join(part for part in [city, state] if part)
-            params["location"] = loc
         else:
-            continue
+            params["location"] = f"{city}, {state}"
 
         try:
-            resp = requests.get(SEARCH_URL, headers=HEADERS, params=params, timeout=10)
-            resp.raise_for_status()
-            businesses = resp.json().get("businesses") or []
+            r = requests.get(SEARCH_URL, headers=HEADERS, params=params, timeout=10)
+            r.raise_for_status()
+            biz = (r.json().get("businesses") or [None])[0]
         except Exception:
+            biz = None  # network or JSON error → treat as no match
+
+        if not biz:
+            cur.execute(
+                "UPDATE places SET yelp_status='FAIL' WHERE place_id=?",
+                (place_id,),
+            )
+            fail += 1
             continue
 
-        if not businesses:
-            continue
-
-        biz = businesses[0]
         cur.execute(
             """
-            UPDATE places
-            SET yelp_rating=?,
-                yelp_reviews=?,
-                yelp_price_tier=?,
-                yelp_status=?
-            WHERE place_id=?
+            UPDATE places SET
+                yelp_rating      = ?,
+                yelp_reviews     = ?,
+                yelp_price_tier  = ?,
+                yelp_status      = 'SUCCESS'
+            WHERE place_id = ?
             """,
             (
                 biz.get("rating"),
                 biz.get("review_count"),
                 biz.get("price"),
-                "closed" if biz.get("is_closed") else "open",
                 place_id,
             ),
         )
@@ -81,7 +89,7 @@ def enrich() -> None:
 
     conn.commit()
     conn.close()
-    print(f"✅ Yelp enrichment done. Success rows: {success}")
+    print(f"✅ Yelp enrichment done. SUCCESS: {success}, FAIL: {fail}")
 
 
 if __name__ == "__main__":
