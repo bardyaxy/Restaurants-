@@ -6,8 +6,8 @@ Clean Google SMB CSV and generate:
 """
 
 import glob
-import math
 import pandas as pd
+from utils import haversine_miles
 
 # ---------------------------------------------------------------------
 # 0.  Load the most-recent Google export
@@ -55,17 +55,12 @@ df["Price"] = df["Price Level"].map(price_map).fillna("")
 # ---------------------------------------------------------------------
 BX_LAT, BX_LON = 47.6154255, -122.2035954      # Bellevue Square Mall
 
-def haversine_miles(lat1, lon1, lat2=BX_LAT, lon2=BX_LON):
-    """Great-circle distance in miles."""
-    R = 3959
-    φ1, φ2 = math.radians(lat1), math.radians(lat2)
-    dφ  = math.radians(lat2 - lat1)
-    dλ  = math.radians(lon2 - lon1)
-    a = math.sin(dφ/2)**2 + math.cos(φ1)*math.cos(φ2)*math.sin(dλ/2)**2
-    return R * (2 * math.atan2(math.sqrt(a), math.sqrt(1 - a)))
-
 df["Distance Miles"] = df.apply(
-    lambda r: round(haversine_miles(r["lat"], r["lon"]), 2), axis=1
+    lambda r: round(
+        haversine_miles(r["lat"], r["lon"], BX_LAT, BX_LON),
+        2,
+    ),
+    axis=1,
 )
 
 # ---------------------------------------------------------------------

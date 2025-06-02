@@ -1,6 +1,5 @@
 import time
 import json
-import math
 import requests
 import pandas as pd
 from datetime import datetime, timezone
@@ -28,7 +27,7 @@ except ImportError:
 # -----------------------------------------------------------------------------
 from chain_blocklist import CHAIN_BLOCKLIST  # list of substrings that ID big chains
 from network_utils import check_network
-from utils import normalize_hours
+from utils import normalize_hours, haversine_miles
 
 # Data store for Google Places results
 smb_restaurants_data: list[dict] = []
@@ -46,20 +45,8 @@ OVERPASS_ENDPOINT = "https://overpass-api.de/api/interpreter"
 # UTILS ------------------------------------------------------------------------
 # -----------------------------------------------------------------------------
 
-
-
-def haversine(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
-    """Return great‑circle distance in miles between two lat/lon points."""
-    R = 3958.8  # Earth radius in miles
-    phi1, phi2 = math.radians(lat1), math.radians(lat2)
-    dphi = math.radians(lat2 - lat1)
-    dlambda = math.radians(lon2 - lon1)
-    a = math.sin(dphi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2) ** 2
-    return 2 * R * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-
-
 # -----------------------------------------------------------------------------
-# 1) GOOGLE PLACES FETCHER ------------------------------------------------------
+# 1) GOOGLE PLACES FETCHER -----------------------------------------------------
 # -----------------------------------------------------------------------------
 
 def fetch_google_places() -> None:
@@ -172,7 +159,13 @@ def fetch_google_places() -> None:
                     # distance from Olympia center
                     if basic_row["lat"] is not None and basic_row["lon"] is not None:
                         enriched["Distance Miles"] = round(
-                            haversine(OLYMPIA_LAT, OLYMPIA_LON, basic_row["lat"], basic_row["lon"]), 2
+                            haversine_miles(
+                                OLYMPIA_LAT,
+                                OLYMPIA_LON,
+                                basic_row["lat"],
+                                basic_row["lon"],
+                            ),
+                            2,
                         )
                     else:
                         enriched["Distance Miles"] = None
