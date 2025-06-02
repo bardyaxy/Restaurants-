@@ -30,6 +30,10 @@ df["Opening Hours"] = (
 # 2.  Split opening hours into a dict per row
 # ---------------------------------------------------------------------
 def split_hours(text: str) -> dict:
+    """Parse semicolon-separated hours into a dictionary."""
+    if pd.isna(text) or not text:
+        return {}
+
     out = {}
     for segment in text.split(";"):
         if ":" not in segment:
