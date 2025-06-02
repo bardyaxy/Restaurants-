@@ -1,7 +1,7 @@
 import sys, pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 import pytest
-from utils import normalize_hours
+from utils import normalize_hours, haversine_miles
 
 
 def test_normalize_hours_basic():
@@ -15,3 +15,17 @@ def test_normalize_hours_basic():
         "Tue": "10 PM – 11 PM",
     }
     assert normalize_hours(hours) == expected
+
+
+def test_haversine_zero_distance():
+    assert haversine_miles(47.0, -122.0, 47.0, -122.0) == pytest.approx(0.0)
+
+
+def test_haversine_one_degree_latitude():
+    dist = haversine_miles(47.0, -122.0, 48.0, -122.0)
+    assert dist == pytest.approx(69.09, rel=1e-2)
+
+
+def test_haversine_one_degree_longitude():
+    dist = haversine_miles(47.0, -122.0, 47.0, -123.0)
+    assert dist == pytest.approx(47.12, rel=1e-2)
