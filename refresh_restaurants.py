@@ -101,105 +101,105 @@ def fetch_google_places() -> None:
                     if any(block in name.lower() for block in CHAIN_BLOCKLIST):
                         continue  # skip chains
 
-                basic_row = {
-                    "Name": name,
-                    "Formatted Address": result.get("formatted_address") or result.get("vicinity"),
-                    "Place ID": result.get("place_id"),
-                    "Rating": result.get("rating"),
-                    "User Ratings Total": result.get("user_ratings_total"),
-                    "Business Status": result.get("business_status"),
-                    "lat": result["geometry"]["location"].get("lat"),
-                    "lon": result["geometry"]["location"].get("lng"),
-                }
-
-                # ---------- Place Details enrichment ----------
-                det_params = {
-                    "key": GOOGLE_API_KEY,
-                    "place_id": basic_row["Place ID"],
-                    "fields": (
-                        "formatted_phone_number,international_phone_number,website,opening_hours,"  # essentials
-                        "price_level,types,address_components,photo"
-                    ),
-                }
-                details = {}
-                try:
-                    d_resp = session.get(details_url, params=det_params, timeout=15)
-                    d_resp.raise_for_status()
-                    details = d_resp.json().get("result", {})
-                except Exception as exc:
-                    print(f"  → Details failed for {name}: {exc}")
-
-                # ----- Parse extra fields -----
-                opening_hours_raw = details.get("opening_hours", {}).get("weekday_text", [])
-                photos = details.get("photos", [])
-                addr_comps = details.get("address_components", [])
-
-                def _parse_hours(items: list[str]) -> dict:
-                    out: dict[str, str] = {}
-                    for seg in items:
-                        if ":" not in seg:
-                            continue
-                        day, times = seg.split(":", 1)
-                        out[day.strip()] = times.strip()
-                    return out
-
-                hours_dict = (
-                    normalize_hours(_parse_hours(opening_hours_raw))
-                    if opening_hours_raw
-                    else {}
-                )
-
-                def _ac(key: str):
-                    for comp in addr_comps:
-                        if key in comp.get("types", []):
-                            return comp.get("long_name")
-                    return ""
-
-                street = f"{_ac('street_number')} {_ac('route')}".strip()
-
-                enriched = {
-                    "Formatted Phone Number": details.get("formatted_phone_number"),
-                    "International Phone Number": details.get("international_phone_number"),
-                    "Website": details.get("website"),
-                    "Opening Hours": (
-                        "; ".join(f"{d}: {t}" for d, t in hours_dict.items())
-                        if hours_dict
-                        else None
-                    ),
-                    "Price Level": details.get("price_level"),
-                    "Types": ",".join(details.get("types", [])),
-                    "Photo Reference": photos[0].get("photo_reference") if photos else None,
-                    "Street Address": street,
-                    "City": _ac("locality"),
-                    "State": _ac("administrative_area_level_1"),
-                    "Zip Code": _ac("postal_code") or zip_code,
-                }
-
-                # distance from Olympia center
-                if basic_row["lat"] is not None and basic_row["lon"] is not None:
-                    enriched["Distance Miles"] = round(
-                        haversine(OLYMPIA_LAT, OLYMPIA_LON, basic_row["lat"], basic_row["lon"]), 2
-                    )
-                else:
-                    enriched["Distance Miles"] = None
-
-                # final row
-                smb_restaurants_data.append(
-                    {
-                        **basic_row,
-                        **enriched,
-                        "source": "google_places_smb",
-                        "last_seen": datetime.now(timezone.utc).isoformat(),
+                    basic_row = {
+                        "Name": name,
+                        "Formatted Address": result.get("formatted_address") or result.get("vicinity"),
+                        "Place ID": result.get("place_id"),
+                        "Rating": result.get("rating"),
+                        "User Ratings Total": result.get("user_ratings_total"),
+                        "Business Status": result.get("business_status"),
+                        "lat": result["geometry"]["location"].get("lat"),
+                        "lon": result["geometry"]["location"].get("lng"),
                     }
-                )
 
-                # ----- paging -----
-                next_token = data.get("next_page_token")
-                if not next_token:
-                    break
-                time.sleep(2)  # Google requirement before using next_page_token
-                params = {"key": GOOGLE_API_KEY, "pagetoken": next_token}
-                page += 1
+                    # ---------- Place Details enrichment ----------
+                    det_params = {
+                        "key": GOOGLE_API_KEY,
+                        "place_id": basic_row["Place ID"],
+                        "fields": (
+                            "formatted_phone_number,international_phone_number,website,opening_hours,"  # essentials
+                            "price_level,types,address_components,photo"
+                        ),
+                    }
+                    details = {}
+                    try:
+                        d_resp = session.get(details_url, params=det_params, timeout=15)
+                        d_resp.raise_for_status()
+                        details = d_resp.json().get("result", {})
+                    except Exception as exc:
+                        print(f"  → Details failed for {name}: {exc}")
+
+                    # ----- Parse extra fields -----
+                    opening_hours_raw = details.get("opening_hours", {}).get("weekday_text", [])
+                    photos = details.get("photos", [])
+                    addr_comps = details.get("address_components", [])
+
+                    def _parse_hours(items: list[str]) -> dict:
+                        out: dict[str, str] = {}
+                        for seg in items:
+                            if ":" not in seg:
+                                continue
+                            day, times = seg.split(":", 1)
+                            out[day.strip()] = times.strip()
+                        return out
+
+                    hours_dict = (
+                        normalize_hours(_parse_hours(opening_hours_raw))
+                        if opening_hours_raw
+                        else {}
+                    )
+
+                    def _ac(key: str):
+                        for comp in addr_comps:
+                            if key in comp.get("types", []):
+                                return comp.get("long_name")
+                        return ""
+
+                    street = f"{_ac('street_number')} {_ac('route')}".strip()
+
+                    enriched = {
+                        "Formatted Phone Number": details.get("formatted_phone_number"),
+                        "International Phone Number": details.get("international_phone_number"),
+                        "Website": details.get("website"),
+                        "Opening Hours": (
+                            "; ".join(f"{d}: {t}" for d, t in hours_dict.items())
+                            if hours_dict
+                            else None
+                        ),
+                        "Price Level": details.get("price_level"),
+                        "Types": ",".join(details.get("types", [])),
+                        "Photo Reference": photos[0].get("photo_reference") if photos else None,
+                        "Street Address": street,
+                        "City": _ac("locality"),
+                        "State": _ac("administrative_area_level_1"),
+                        "Zip Code": _ac("postal_code") or zip_code,
+                    }
+
+                    # distance from Olympia center
+                    if basic_row["lat"] is not None and basic_row["lon"] is not None:
+                        enriched["Distance Miles"] = round(
+                            haversine(OLYMPIA_LAT, OLYMPIA_LON, basic_row["lat"], basic_row["lon"]), 2
+                        )
+                    else:
+                        enriched["Distance Miles"] = None
+
+                    # final row
+                    smb_restaurants_data.append(
+                        {
+                            **basic_row,
+                            **enriched,
+                            "source": "google_places_smb",
+                            "last_seen": datetime.now(timezone.utc).isoformat(),
+                        }
+                    )
+
+            # ----- paging -----
+            next_token = data.get("next_page_token")
+            if not next_token:
+                break
+            time.sleep(2)  # Google requirement before using next_page_token
+            params = {"key": GOOGLE_API_KEY, "pagetoken": next_token}
+            page += 1
 
     print(f"Collected {len(smb_restaurants_data)} SMB rows with enrichment.")
 
