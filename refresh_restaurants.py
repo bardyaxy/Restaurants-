@@ -1,10 +1,16 @@
-import os
 import time
 import json
 import math
 import requests
 import pandas as pd
 from datetime import datetime, timezone
+
+from config import (
+    GOOGLE_API_KEY,
+    TARGET_OLYMPIA_ZIPS,
+    OLYMPIA_LAT,
+    OLYMPIA_LON,
+)
 
 MAX_PAGES = 6   # safety cap; tweak per need
 
@@ -16,11 +22,6 @@ try:
 except ImportError:
     geocoder = None
 
-try:
-    from dotenv import load_dotenv
-except ImportError:
-    def load_dotenv(*_args, **_kwargs):
-        pass
 
 # -----------------------------------------------------------------------------
 # LOCAL MODULES ----------------------------------------------------------------
@@ -32,22 +33,14 @@ from utils import normalize_hours
 # Data store for Google Places results
 smb_restaurants_data: list[dict] = []
 
-load_dotenv()
-
 # -----------------------------------------------------------------------------
 # CONFIGURATION ----------------------------------------------------------------
 # -----------------------------------------------------------------------------
-GOOGLE_API_KEY: str | None = os.getenv("GOOGLE_API_KEY")
-if not GOOGLE_API_KEY:
-    raise SystemExit("Error: GOOGLE_API_KEY not found. Add it to your .env or export it before running.")
-
 GOV_CSV_FILES = {
     "wa_health": "wa_food_establishments.csv",
     "thurston_county": "thurston_business_licenses.csv",
 }
 OVERPASS_ENDPOINT = "https://overpass-api.de/api/interpreter"
-TARGET_OLYMPIA_ZIPS = ["98501"]  # extend this list as needed
-OLYMPIA_LAT, OLYMPIA_LON = 47.0379, -122.9007  # used for distance calculation
 
 # -----------------------------------------------------------------------------
 # UTILS ------------------------------------------------------------------------

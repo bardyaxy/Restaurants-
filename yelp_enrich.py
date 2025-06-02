@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 import pathlib
 import sqlite3
 from typing import Any
@@ -12,16 +11,9 @@ import requests
 # --------------------------------------------------------------------------- #
 # Config & setup
 # --------------------------------------------------------------------------- #
-try:
-    from dotenv import load_dotenv  # type: ignore
-except Exception:  # pragma: no cover
-    def load_dotenv(*_a: Any, **_kw: Any) -> None:  # fallback no-op
-        pass
-
-load_dotenv()  # pull vars from .env if present
+from config import YELP_API_KEY
 
 DB_PATH = pathlib.Path(__file__).with_name("dela.sqlite")
-YELP_API_KEY = os.getenv("YELP_API_KEY")
 
 if not YELP_API_KEY:
     raise SystemExit("⚠️  Set YELP_API_KEY first (env var or .env file)")
