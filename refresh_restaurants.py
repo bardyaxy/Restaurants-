@@ -194,13 +194,13 @@ def fetch_google_places() -> None:
                         }
                     )
 
-            # ----- paging (run once per Google response) -----
-            next_token = data.get("next_page_token")
-            if not next_token or page >= MAX_PAGES:
-                break                    # no more pages or hit our safety cap
-            time.sleep(2)                # Google requires a short pause
-            params = {"key": GOOGLE_API_KEY, "pagetoken": next_token}
-            page += 1
+                # ----- paging (run once per Google response) -----
+                next_token = data.get("next_page_token")
+                if not next_token or page >= MAX_PAGES:
+                    break                    # no more pages or hit our safety cap
+                time.sleep(2)                # Google requires a short pause
+                params = {"key": GOOGLE_API_KEY, "pagetoken": next_token}
+                page += 1
 
     print(f"Collected {len(smb_restaurants_data)} SMB rows with enrichment.")
 
