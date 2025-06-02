@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import pathlib
 import sqlite3
 from typing import Any
@@ -23,6 +24,8 @@ if not YELP_API_KEY:
 
 HEADERS = {"Authorization": f"Bearer {YELP_API_KEY}"}
 SEARCH_URL = "https://api.yelp.com/v3/businesses/search"
+
+MATCH_THRESHOLD = int(os.getenv("YELP_MATCH_THRESHOLD", "70"))
 
 # --------------------------------------------------------------------------- #
 # Core logic
@@ -67,12 +70,12 @@ def enrich() -> None:
         best, best_score = None, 0
         for cand in biz_candidates:
             cand_name = cand.get("name") or ""
-            score = fuzz.ratio(name, cand_name)
+            score = fuzz.token_set_ratio(name, cand_name)
             if score > best_score:
                 best_score = score
                 best = cand
 
-        if not best or best_score < 70:
+        if not best or best_score < MATCH_THRESHOLD:
             cur.execute(
                 "UPDATE places SET yelp_status='FAIL' WHERE place_id=?",
                 (place_id,),
