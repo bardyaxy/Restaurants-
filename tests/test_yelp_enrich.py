@@ -240,3 +240,61 @@ def test_enrich_retries_missing_categories(tmp_path, monkeypatch):
         "SELECT yelp_cuisines, yelp_primary_cuisine, yelp_category_titles FROM places WHERE place_id='pid3'"
     ).fetchone()
     assert row == ("thai", "thai", "Thai")
+
+
+def test_enrich_fallbacks_to_phone_search(tmp_path, monkeypatch):
+    os.environ["YELP_API_KEY"] = "TEST"
+    os.environ.setdefault("GOOGLE_API_KEY", "DUMMY")
+    from restaurants import loader, yelp_enrich
+
+    tmp_db = tmp_path / "dela.sqlite"
+    monkeypatch.setattr(loader, "DB_PATH", tmp_db)
+    conn = loader.ensure_db()
+    conn.execute(
+        "INSERT INTO places (place_id, name, city, state, local_phone) VALUES (?,?,?,?,?)",
+        ("pid4", "Phone", "Olympia", "WA", "+13601234567"),
+    )
+    conn.commit()
+    conn.close()
+
+    monkeypatch.setattr(yelp_enrich, "DB_PATH", tmp_db)
+    monkeypatch.setattr(yelp_enrich, "check_network", lambda: True)
+
+    calls = {"search": 0, "phone": 0}
+
+    def dummy_get(url, headers, params, timeout):
+        if url == yelp_enrich.SEARCH_URL:
+            calls["search"] += 1
+            class Resp:
+                @staticmethod
+                def raise_for_status():
+                    pass
+
+                @staticmethod
+                def json():
+                    return {"businesses": []}
+
+            return Resp()
+        elif url == yelp_enrich.PHONE_SEARCH_URL:
+            calls["phone"] += 1
+            class Resp:
+                @staticmethod
+                def raise_for_status():
+                    pass
+
+                @staticmethod
+                def json():
+                    return {"businesses": [{"name": "Phone", "rating": 5.0, "review_count": 7, "price": "$", "categories": []}]}
+
+            return Resp()
+        raise AssertionError("unexpected URL")
+
+    monkeypatch.setattr(yelp_enrich.requests, "get", dummy_get)
+
+    yelp_enrich.enrich()
+
+    row = sqlite3.connect(tmp_db).execute(
+        "SELECT yelp_rating, yelp_status FROM places WHERE place_id='pid4'"
+    ).fetchone()
+    assert row == (5.0, "SUCCESS")
+    assert calls == {"search": 1, "phone": 1}

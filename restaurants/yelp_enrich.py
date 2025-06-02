@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import pathlib
 import sqlite3
+import logging
 from typing import Any
 
 import requests
@@ -24,9 +25,11 @@ if not YELP_API_KEY:
 
 HEADERS = {"Authorization": f"Bearer {YELP_API_KEY}"}
 SEARCH_URL = "https://api.yelp.com/v3/businesses/search"
+PHONE_SEARCH_URL = "https://api.yelp.com/v3/businesses/search/phone"
 
 MATCH_THRESHOLD = int(os.getenv("YELP_MATCH_THRESHOLD", "70"))
 DEBUG = bool(os.getenv("YELP_DEBUG"))
+logging.basicConfig(level=logging.DEBUG if DEBUG else logging.INFO)
 
 # --------------------------------------------------------------------------- #
 # Core logic
@@ -45,7 +48,7 @@ def enrich() -> None:
     # queue rows that were never touched or are missing cuisines (old DB schema)
     rows = cur.execute(
         """
-        SELECT place_id, name, city, state, lat, lon
+        SELECT place_id, name, city, state, lat, lon, local_phone
         FROM   places
         WHERE  yelp_status IS NULL
            OR  yelp_status IN ('open','closed')
@@ -54,8 +57,8 @@ def enrich() -> None:
     ).fetchall()
 
     success, fail = 0, 0
-    for place_id, name, city, state, lat, lon in rows:
-        params: dict[str, Any] = {"term": name, "limit": 5}
+    for place_id, name, city, state, lat, lon, local_phone in rows:
+        params: dict[str, Any] = {"term": f"{name} {city}", "limit": 5}
         if lat is not None and lon is not None:
             params.update({"latitude": lat, "longitude": lon})
         else:
@@ -76,7 +79,33 @@ def enrich() -> None:
                 best_score = score
                 best = cand
 
+        # fallback to phone-based search if we didn't get a strong match
+        if (not best or best_score < MATCH_THRESHOLD) and local_phone:
+            try:
+                r2 = requests.get(
+                    PHONE_SEARCH_URL,
+                    headers=HEADERS,
+                    params={"phone": local_phone},
+                    timeout=10,
+                )
+                r2.raise_for_status()
+                phone_biz = (r2.json().get("businesses") or [None])[0]
+            except Exception:
+                phone_biz = None
+            if phone_biz:
+                best = phone_biz
+                best_score = 100
+
         if not best or best_score < MATCH_THRESHOLD:
+            raw_results = biz_candidates
+            logging.debug(
+                "Yelp search for %r at (%s,%s) returned %d candidates: %s",
+                name,
+                lat,
+                lon,
+                len(raw_results),
+                [c.get("name") for c in raw_results],
+            )
             cur.execute(
                 "UPDATE places SET yelp_status='FAIL' WHERE place_id=?",
                 (place_id,),
