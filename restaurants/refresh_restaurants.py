@@ -160,6 +160,7 @@ def fetch_google_places() -> None:
                         ),
                         "Price Level": details.get("price_level"),
                         "Types": ",".join(details.get("types", [])),
+                        "Category": (details.get("types") or [None])[0],
                         "Photo Reference": photos[0].get("photo_reference") if photos else None,
                         "Street Address": street,
                         "City": _ac("locality"),
