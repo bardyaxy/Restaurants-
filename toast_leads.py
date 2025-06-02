@@ -1,4 +1,3 @@
-import os
 import json
 import csv
 import time
@@ -11,14 +10,7 @@ import requests
 # ---------------------------------------------------------------------------
 # 0.  Setup
 # ---------------------------------------------------------------------------
-try:
-    from dotenv import load_dotenv
-except ImportError:
-    def load_dotenv(*_args, **_kwargs):
-        """Fallback if python-dotenv isn’t installed."""
-        pass
-
-load_dotenv()
+from config import GOOGLE_API_KEY, TARGET_OLYMPIA_ZIPS
 
 try:
     from chain_blocklist import CHAIN_BLOCKLIST            # names to skip
@@ -31,13 +23,8 @@ except Exception:
     def check_network() -> bool:
         return True
 
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
-if not GOOGLE_API_KEY:
-    raise SystemExit("Error: GOOGLE_API_KEY environment variable not set")
-
 SEARCH_URL  = "https://maps.googleapis.com/maps/api/place/textsearch/json"
 DETAILS_URL = "https://maps.googleapis.com/maps/api/place/details/json"
-TARGET_OLYMPIA_ZIPS = ["98501"]           # add more ZIPs as needed
 
 logging.basicConfig(
     filename="error.log",

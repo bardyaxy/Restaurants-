@@ -21,13 +21,13 @@ This project collects restaurant information for ZIP codes around Olympia, Washi
    ```bash
    pip install -r requirements.txt
    ```
-2. Copy `.env.template` to `.env` and fill in your `GOOGLE_API_KEY`. Other keys are optional.
+2. Copy `.env.template` to `.env` and fill in your `GOOGLE_API_KEY`. Other keys are optional. Configuration is loaded via `config.py`.
 3. Run the script:
    ```bash
    python refresh_restaurants.py
    ```
 
-The script currently targets a single ZIP code (`98501`). Adjust `TARGET_OLYMPIA_ZIPS` in `refresh_restaurants.py` if you need additional areas.
+The script currently targets a single ZIP code (`98501`). Adjust `TARGET_OLYMPIA_ZIPS` in `config.py` if you need additional areas.
 
 ## Toast lead enrichment
 
