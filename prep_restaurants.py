@@ -55,13 +55,11 @@ df["Price"] = df["Price Level"].map(price_map).fillna("")
 # ---------------------------------------------------------------------
 BX_LAT, BX_LON = 47.6154255, -122.2035954      # Bellevue Square Mall
 
-df["Distance Miles"] = df.apply(
-    lambda r: round(
-        haversine_miles(r["lat"], r["lon"], BX_LAT, BX_LON),
-        2,
-    ),
-    axis=1,
-)
+def _bx_distance(row):
+    dist = haversine_miles(row["lat"], row["lon"], BX_LAT, BX_LON)
+    return round(dist, 2) if dist is not None else None
+
+df["Distance Miles"] = df.apply(_bx_distance, axis=1)
 
 # ---------------------------------------------------------------------
 # 5.  Quick lead-quality flags

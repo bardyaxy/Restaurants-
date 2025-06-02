@@ -4,8 +4,16 @@ import math
 THIN_SPACE_CHARS = '\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a'
 
 
-def haversine_miles(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
-    """Great‑circle distance in miles between two lat/lon points."""
+def haversine_miles(lat1: float, lon1: float, lat2: float, lon2: float):
+    """Great‑circle distance in miles between two lat/lon points.
+
+    Returns ``None`` if any coordinate is ``None`` or NaN.
+    """
+
+    for v in (lat1, lon1, lat2, lon2):
+        if v is None or math.isnan(v):
+            return None
+
     R = 3958.8
     phi1, phi2 = math.radians(lat1), math.radians(lat2)
     dphi = math.radians(lat2 - lat1)
