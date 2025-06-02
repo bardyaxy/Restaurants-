@@ -76,11 +76,11 @@ def test_enrich_inserts_categories(tmp_path, monkeypatch):
 
     conn = sqlite3.connect(tmp_db)
     row = conn.execute(
-        "SELECT yelp_cuisines, yelp_primary_cuisine, yelp_status "
+        "SELECT yelp_cuisines, yelp_primary_cuisine, yelp_category_titles, yelp_status "
         "FROM places WHERE place_id='pid1'"
     ).fetchone()
     conn.close()
-    assert row == ("pizza,italian", "pizza", "SUCCESS")
+    assert row == ("pizza,italian", "pizza", "Pizza,Italian", "SUCCESS")
     assert called_params.get("limit") == 5
 
 
@@ -237,6 +237,6 @@ def test_enrich_retries_missing_categories(tmp_path, monkeypatch):
     yelp_enrich.enrich()
 
     row = sqlite3.connect(tmp_db).execute(
-        "SELECT yelp_cuisines, yelp_primary_cuisine FROM places WHERE place_id='pid3'"
+        "SELECT yelp_cuisines, yelp_primary_cuisine, yelp_category_titles FROM places WHERE place_id='pid3'"
     ).fetchone()
-    assert row == ("thai", "thai")
+    assert row == ("thai", "thai", "Thai")
