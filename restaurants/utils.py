@@ -3,6 +3,8 @@ import math
 import os
 import sys
 import logging
+import numpy as np
+import pandas as pd
 
 THIN_SPACE_CHARS = '\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a'
 
@@ -23,6 +25,36 @@ def haversine_miles(lat1: float, lon1: float, lat2: float, lon2: float):
     dlambda = math.radians(lon2 - lon1)
     a = math.sin(dphi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2) ** 2
     return 2 * R * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+
+def haversine_miles_series(
+    lat_series: pd.Series,
+    lon_series: pd.Series,
+    ref_lat: float,
+    ref_lon: float,
+) -> pd.Series:
+    """Vectorized haversine distance in miles to a reference point."""
+
+    lat = lat_series.astype(float).to_numpy()
+    lon = lon_series.astype(float).to_numpy()
+
+    mask = ~np.isnan(lat) & ~np.isnan(lon)
+    result = np.empty(lat.shape[0])
+    result[:] = np.nan
+
+    if mask.any():
+        R = 3958.8
+        phi1 = np.radians(lat[mask])
+        phi2 = math.radians(ref_lat)
+        dphi = np.radians(ref_lat - lat[mask])
+        dlambda = np.radians(ref_lon - lon[mask])
+        a = np.sin(dphi / 2) ** 2 + np.cos(phi1) * np.cos(phi2) * np.sin(dlambda / 2) ** 2
+        result[mask] = 2 * R * np.arctan2(np.sqrt(a), np.sqrt(1 - a))
+
+    series = pd.Series([None] * len(lat_series), index=lat_series.index, dtype=object)
+    for idx in np.where(mask)[0]:
+        series.iloc[idx] = result[idx]
+    return series
 
 
 def normalize_hours(hours_dict: dict) -> dict:
