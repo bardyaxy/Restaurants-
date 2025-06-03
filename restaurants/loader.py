@@ -10,6 +10,8 @@ import sqlite3
 import pathlib
 import textwrap
 import logging
+import json
+from datetime import datetime, timezone
 
 try:
     from restaurants.utils import setup_logging
@@ -115,6 +117,89 @@ def load(csv_file: pathlib.Path) -> None:
     conn.commit()
     total = cur.execute("SELECT COUNT(*) FROM places").fetchone()[0]
     logging.info("CSV loaded. Rows now in table: %s", total)
+    conn.close()
+
+
+def load_yelp_json(json_file: pathlib.Path) -> None:
+    """Insert Yelp-fetch JSON rows into the places table."""
+    conn = ensure_db()
+    cur = conn.cursor()
+
+    cols = [
+        "place_id",
+        "name",
+        "formatted_address",
+        "city",
+        "state",
+        "zip_code",
+        "lat",
+        "lon",
+        "local_phone",
+        "website",
+        "yelp_rating",
+        "yelp_reviews",
+        "yelp_price_tier",
+        "yelp_cuisines",
+        "yelp_primary_cuisine",
+        "yelp_category_titles",
+        "source",
+        "last_seen",
+    ]
+
+    insert_sql = (
+        f"INSERT OR IGNORE INTO places ({', '.join(cols)}) "
+        f"VALUES ({', '.join(['?'] * len(cols))})"
+    )
+
+    with json_file.open(encoding='utf-8') as f:
+        data = json.load(f)
+
+    now = datetime.now(timezone.utc).isoformat()
+
+    for item in data:
+        business = item.get("business") or {}
+        details = item.get("details") or {}
+        info = details or business
+
+        location = info.get("location") or business.get("location") or {}
+        coords = info.get("coordinates") or business.get("coordinates") or {}
+        categories = info.get("categories") or business.get("categories") or []
+        aliases = [c.get("alias") for c in categories if c and c.get("alias")]
+        titles = [c.get("title") for c in categories if c and c.get("title")]
+
+        addr_parts = [
+            location.get("address1"),
+            location.get("city"),
+            location.get("state"),
+            location.get("zip_code"),
+        ]
+        formatted_address = ", ".join([p for p in addr_parts if p]) or None
+
+        row = {
+            "place_id": business.get("id") or details.get("id"),
+            "name": business.get("name") or details.get("name"),
+            "formatted_address": formatted_address,
+            "city": location.get("city"),
+            "state": location.get("state"),
+            "zip_code": location.get("zip_code"),
+            "lat": coords.get("latitude"),
+            "lon": coords.get("longitude"),
+            "local_phone": info.get("display_phone") or info.get("phone"),
+            "website": info.get("url"),
+            "yelp_rating": business.get("rating"),
+            "yelp_reviews": business.get("review_count"),
+            "yelp_price_tier": business.get("price"),
+            "yelp_cuisines": ",".join(aliases) if aliases else None,
+            "yelp_primary_cuisine": aliases[0] if aliases else None,
+            "yelp_category_titles": ",".join(titles) if titles else None,
+            "source": "yelp_fetch",
+            "last_seen": now,
+        }
+
+        cur.execute(insert_sql, [row.get(c) for c in cols])
+
+    conn.commit()
+    logging.info("Yelp JSON loaded. Rows now in table: %s", cur.execute("SELECT COUNT(*) FROM places").fetchone()[0])
     conn.close()
 
 

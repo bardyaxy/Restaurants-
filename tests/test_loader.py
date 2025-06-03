@@ -1,5 +1,6 @@
 import csv
 import sqlite3
+import json
 from restaurants import loader
 
 
@@ -77,3 +78,42 @@ def test_ensure_db_updates_partial_schema(tmp_path, monkeypatch):
     cols = {row[1] for row in conn.execute("PRAGMA table_info(places)")}
     conn.close()
     assert {"yelp_cuisines", "yelp_primary_cuisine", "yelp_category_titles"} <= cols
+
+
+def test_load_yelp_json(tmp_path, monkeypatch):
+    data = [
+        {
+            "business": {
+                "id": "y1",
+                "name": "YelpFoo",
+                "location": {
+                    "address1": "123 A St",
+                    "city": "Olympia",
+                    "state": "WA",
+                    "zip_code": "98501",
+                },
+                "coordinates": {"latitude": 47.0, "longitude": -122.0},
+                "rating": 4.0,
+                "review_count": 7,
+                "price": "$",
+                "phone": "123",
+                "url": "http://foo.com",
+                "categories": [{"alias": "thai", "title": "Thai"}],
+            },
+            "details": {},
+            "reviews": {},
+        }
+    ]
+    json_path = tmp_path / "data.json"
+    json_path.write_text(json.dumps(data))
+
+    tmp_db = tmp_path / "dela.sqlite"
+    monkeypatch.setattr(loader, "DB_PATH", tmp_db)
+    loader.load_yelp_json(json_path)
+
+    conn = sqlite3.connect(tmp_db)
+    row = conn.execute(
+        "SELECT name, city, yelp_rating, yelp_cuisines, source FROM places WHERE place_id='y1'"
+    ).fetchone()
+    conn.close()
+    assert row == ("YelpFoo", "Olympia", 4.0, "thai", "yelp_fetch")
