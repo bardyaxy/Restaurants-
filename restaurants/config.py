@@ -47,7 +47,7 @@ if _missing:
 
 # List of ZIP codes for the Olympia, WA area
 TARGET_OLYMPIA_ZIPS: List[str] = [
-    "98303", "98327"
+    "98501", "98502"
 ]
 
 # Geographic coordinates for Olympia, WA
