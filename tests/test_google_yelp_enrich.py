@@ -1,5 +1,6 @@
 import os
 import importlib
+import pytest
 
 os.environ.setdefault("GOOGLE_API_KEY", "DUMMY")
 os.environ.setdefault("YELP_API_KEY", "DUMMY")
@@ -37,10 +38,11 @@ def test_enrich_restaurant_success(monkeypatch):
     assert res["yelp"]["business"]["id"] == "y1"
     assert res["yelp"]["details"]["name"] == "Foo Yelp"
     assert res["yelp"]["reviews"]["reviews"][0]["id"] == "r1"
+    assert res["yelp"]["summary"]["website"] is None
 
 
 def test_enrich_restaurant_no_network(monkeypatch):
     gye = importlib.import_module("restaurants.google_yelp_enrich")
     monkeypatch.setattr(gye, "check_network", lambda: False)
-    res = gye.enrich_restaurant("Foo", "Olympia WA")
-    assert res == {}
+    with pytest.raises(SystemExit):
+        gye.enrich_restaurant("Foo", "Olympia WA")

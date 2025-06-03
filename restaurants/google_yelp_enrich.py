@@ -9,9 +9,11 @@ from __future__ import annotations
 import argparse
 import json
 import logging
-from typing import Any, Dict
+from typing import Any, Dict, Iterable
 
 import requests
+
+from rapidfuzz import fuzz
 
 from .config import GOOGLE_API_KEY, YELP_API_KEY
 from .network_utils import check_network
@@ -33,13 +35,45 @@ def search_google_place(name: str, location: str, session: requests.Session) -> 
     return results[0] if results else {}
 
 
-def search_yelp_business(name: str, lat: float, lon: float, session: requests.Session) -> dict[str, Any]:
-    """Return the first Yelp business for the given name and coordinates."""
-    params = {"term": name, "latitude": lat, "longitude": lon, "limit": 1}
+def _pick_best_by_name(name: str, businesses: Iterable[dict[str, Any]]) -> dict[str, Any]:
+    """Return the business with the highest fuzzy match to ``name``."""
+    best: dict[str, Any] | None = None
+    best_score = -1.0
+    for biz in businesses:
+        score = fuzz.token_set_ratio(name, biz.get("name", ""))
+        if score > best_score:
+            best = biz
+            best_score = score
+    return best or {}
+
+
+def search_yelp_business(
+    name: str,
+    lat: float | None,
+    lon: float | None,
+    location: str,
+    session: requests.Session,
+) -> dict[str, Any]:
+    """Return the best Yelp business for ``name`` using coords or location."""
+    params = {"term": name, "limit": 5}
+    if lat is not None and lon is not None:
+        params.update({"latitude": lat, "longitude": lon})
+    else:
+        params["location"] = location
+
     resp = session.get(YELP_SEARCH_URL, headers=HEADERS, params=params, timeout=10)
     resp.raise_for_status()
     results = resp.json().get("businesses") or []
-    return results[0] if results else {}
+
+    if not results and (lat is not None and lon is not None):
+        params.pop("latitude", None)
+        params.pop("longitude", None)
+        params["location"] = location
+        resp = session.get(YELP_SEARCH_URL, headers=HEADERS, params=params, timeout=10)
+        resp.raise_for_status()
+        results = resp.json().get("businesses") or []
+
+    return _pick_best_by_name(name, results)
 
 
 def get_yelp_details(business_id: str, session: requests.Session) -> dict[str, Any]:
@@ -57,8 +91,7 @@ def get_yelp_reviews(business_id: str, session: requests.Session) -> dict[str, A
 def enrich_restaurant(name: str, location: str) -> dict[str, Any]:
     """Return combined Google and Yelp data for ``name`` in ``location``."""
     if not check_network():
-        logging.info("Network unavailable, skipping enrichment")
-        return {}
+        raise SystemExit("Network unavailable; Yelp enrichment required")
 
     if not GOOGLE_API_KEY or not YELP_API_KEY:
         raise SystemExit("Missing GOOGLE_API_KEY or YELP_API_KEY")
@@ -72,12 +105,21 @@ def enrich_restaurant(name: str, location: str) -> dict[str, Any]:
         yelp_biz: Dict[str, Any] = {}
         yelp_details: Dict[str, Any] = {}
         yelp_reviews: Dict[str, Any] = {}
-        if lat is not None and lon is not None:
-            yelp_biz = search_yelp_business(g_place.get("name", name), lat, lon, session)
-            biz_id = yelp_biz.get("id")
-            if biz_id:
-                yelp_details = get_yelp_details(biz_id, session)
-                yelp_reviews = get_yelp_reviews(biz_id, session)
+
+        yelp_biz = search_yelp_business(g_place.get("name", name), lat, lon, location, session)
+        biz_id = yelp_biz.get("id")
+        if biz_id:
+            yelp_details = get_yelp_details(biz_id, session)
+            yelp_reviews = get_yelp_reviews(biz_id, session)
+
+        cuisines = [c.get("alias") for c in (yelp_details.get("categories") or []) if c.get("alias")]
+        summary = {
+            "cuisines": cuisines,
+            "primary_cuisine": cuisines[0] if cuisines else None,
+            "website": yelp_details.get("url"),
+            "delivery": "delivery" in (yelp_details.get("transactions") or []),
+            "review_count": yelp_details.get("review_count"),
+        }
 
         return {
             "google": g_place,
@@ -85,6 +127,7 @@ def enrich_restaurant(name: str, location: str) -> dict[str, Any]:
                 "business": yelp_biz,
                 "details": yelp_details,
                 "reviews": yelp_reviews,
+                "summary": summary,
             },
         }
 
