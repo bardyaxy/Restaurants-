@@ -23,8 +23,6 @@ YELP_SEARCH_URL = "https://api.yelp.com/v3/businesses/search"
 YELP_DETAILS_URL = "https://api.yelp.com/v3/businesses/{id}"
 YELP_REVIEWS_URL = "https://api.yelp.com/v3/businesses/{id}/reviews"
 
-HEADERS = {"Authorization": f"Bearer {YELP_API_KEY}"}
-
 
 def search_google_place(name: str, location: str, session: requests.Session) -> dict[str, Any]:
     """Return the first Google place result for ``name`` and ``location``."""
@@ -53,6 +51,7 @@ def search_yelp_business(
     lon: float | None,
     location: str,
     session: requests.Session,
+    headers: dict[str, str],
 ) -> dict[str, Any]:
     """Return the best Yelp business for ``name`` using coords or location."""
     params = {"term": name, "limit": 5}
@@ -61,7 +60,7 @@ def search_yelp_business(
     else:
         params["location"] = location
 
-    resp = session.get(YELP_SEARCH_URL, headers=HEADERS, params=params, timeout=10)
+    resp = session.get(YELP_SEARCH_URL, headers=headers, params=params, timeout=10)
     resp.raise_for_status()
     results = resp.json().get("businesses") or []
 
@@ -69,21 +68,29 @@ def search_yelp_business(
         params.pop("latitude", None)
         params.pop("longitude", None)
         params["location"] = location
-        resp = session.get(YELP_SEARCH_URL, headers=HEADERS, params=params, timeout=10)
+        resp = session.get(YELP_SEARCH_URL, headers=headers, params=params, timeout=10)
         resp.raise_for_status()
         results = resp.json().get("businesses") or []
 
     return _pick_best_by_name(name, results)
 
 
-def get_yelp_details(business_id: str, session: requests.Session) -> dict[str, Any]:
-    resp = session.get(YELP_DETAILS_URL.format(id=business_id), headers=HEADERS, timeout=10)
+def get_yelp_details(
+    business_id: str, session: requests.Session, headers: dict[str, str]
+) -> dict[str, Any]:
+    resp = session.get(
+        YELP_DETAILS_URL.format(id=business_id), headers=headers, timeout=10
+    )
     resp.raise_for_status()
     return resp.json()
 
 
-def get_yelp_reviews(business_id: str, session: requests.Session) -> dict[str, Any]:
-    resp = session.get(YELP_REVIEWS_URL.format(id=business_id), headers=HEADERS, timeout=10)
+def get_yelp_reviews(
+    business_id: str, session: requests.Session, headers: dict[str, str]
+) -> dict[str, Any]:
+    resp = session.get(
+        YELP_REVIEWS_URL.format(id=business_id), headers=headers, timeout=10
+    )
     resp.raise_for_status()
     return resp.json()
 
@@ -96,6 +103,8 @@ def enrich_restaurant(name: str, location: str) -> dict[str, Any]:
     if not GOOGLE_API_KEY or not YELP_API_KEY:
         raise SystemExit("Missing GOOGLE_API_KEY or YELP_API_KEY")
 
+    headers = {"Authorization": f"Bearer {YELP_API_KEY}"}
+
     with requests.Session() as session:
         g_place = search_google_place(name, location, session)
         if not g_place:
@@ -106,11 +115,13 @@ def enrich_restaurant(name: str, location: str) -> dict[str, Any]:
         yelp_details: Dict[str, Any] = {}
         yelp_reviews: Dict[str, Any] = {}
 
-        yelp_biz = search_yelp_business(g_place.get("name", name), lat, lon, location, session)
+        yelp_biz = search_yelp_business(
+            g_place.get("name", name), lat, lon, location, session, headers
+        )
         biz_id = yelp_biz.get("id")
         if biz_id:
-            yelp_details = get_yelp_details(biz_id, session)
-            yelp_reviews = get_yelp_reviews(biz_id, session)
+            yelp_details = get_yelp_details(biz_id, session, headers)
+            yelp_reviews = get_yelp_reviews(biz_id, session, headers)
 
         cuisines = [c.get("alias") for c in (yelp_details.get("categories") or []) if c.get("alias")]
         summary = {
