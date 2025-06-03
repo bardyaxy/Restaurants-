@@ -1,5 +1,4 @@
 from tests import requests_stub
-import pytest
 import restaurants.network_utils as network_utils
 
 
