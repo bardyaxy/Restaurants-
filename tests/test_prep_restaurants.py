@@ -28,6 +28,7 @@ def test_prep_restaurants_functions(tmp_path, monkeypatch):
     monkeypatch.setattr(pd.DataFrame, "to_excel", dummy_to_excel)
 
     pr = importlib.import_module("restaurants.prep_restaurants")
+    pr.main()
 
     assert captured.get("csv") == "restaurants_prepped.csv"
     assert captured.get("xlsx") == "restaurants_prepped.xlsx"
