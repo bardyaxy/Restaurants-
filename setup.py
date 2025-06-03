@@ -20,7 +20,6 @@ setup(
     entry_points={
         "console_scripts": [
             "refresh-restaurants=restaurants.refresh_restaurants:main",
-            "yelp-enrich=restaurants.yelp_enrich:enrich",
             "toast-leads=restaurants.toast_leads:main",
         ]
     },
