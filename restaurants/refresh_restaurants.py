@@ -6,10 +6,11 @@ from datetime import datetime, timezone
 import pathlib
 import sqlite3
 import logging
+import argparse
 
 try:
     from restaurants.utils import setup_logging, normalize_hours, haversine_miles
-    from restaurants import loader, yelp_enrich
+    from restaurants import loader, yelp_enrich, yelp_fetch
     from restaurants.config import (
         GOOGLE_API_KEY,
         TARGET_OLYMPIA_ZIPS,
@@ -22,6 +23,7 @@ except Exception:  # pragma: no cover - fallback for running as script
     from utils import setup_logging, normalize_hours, haversine_miles
     import loader
     import yelp_enrich
+    import yelp_fetch
     from config import (
         GOOGLE_API_KEY,
         TARGET_OLYMPIA_ZIPS,
@@ -238,7 +240,15 @@ def fetch_osm():
 # 4) MAIN ----------------------------------------------------------------------
 # -----------------------------------------------------------------------------
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> None:
+    parser = argparse.ArgumentParser(description="Refresh restaurant data")
+    parser.add_argument(
+        "--yelp-json",
+        dest="yelp_json",
+        help="Path to write Yelp fetch JSON and import into the DB",
+    )
+    args = parser.parse_args(argv)
+
     setup_logging()
     smb_restaurants_data.clear()
     fetch_google_places()
@@ -255,6 +265,17 @@ def main() -> None:
 
     csv_path = pathlib.Path(out_csv)
     loader.load(csv_path)
+
+    if args.yelp_json:
+        results = yelp_fetch.enrich_restaurants(TARGET_OLYMPIA_ZIPS[0])
+        yelp_path = pathlib.Path(args.yelp_json)
+        if results:
+            if yelp_path.is_dir():
+                yelp_path = yelp_path / f"yelp_businesses_{TARGET_OLYMPIA_ZIPS[0]}_{timestamp}.json"
+            with yelp_path.open("w", encoding="utf-8") as f:
+                json.dump(results, f, indent=2)
+            loader.load_yelp_json(yelp_path)
+
     yelp_enrich.enrich()
 
     conn = sqlite3.connect(loader.DB_PATH)
