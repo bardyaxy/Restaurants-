@@ -35,3 +35,11 @@ def test_prep_restaurants_functions(tmp_path, monkeypatch):
     assert pr.split_hours("Mon: 9-5; Tue: 10-6") == {"Mon": "9-5", "Tue": "10-6"}
     assert pr._bx_distance(pd.Series({"lat": pr.BX_LAT, "lon": pr.BX_LON})) == 0
 
+    series_dist = pr.haversine_miles_series(
+        pd.Series([pr.BX_LAT]),
+        pd.Series([pr.BX_LON]),
+        pr.BX_LAT,
+        pr.BX_LON,
+    )
+    assert series_dist.iloc[0] == 0
+

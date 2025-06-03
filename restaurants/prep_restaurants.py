@@ -8,9 +8,13 @@ import logging
 import pandas as pd
 
 try:
-    from restaurants.utils import haversine_miles, setup_logging
+    from restaurants.utils import (
+        haversine_miles,
+        haversine_miles_series,
+        setup_logging,
+    )
 except Exception:  # pragma: no cover - fallback for running as script
-    from utils import haversine_miles, setup_logging
+    from utils import haversine_miles, haversine_miles_series, setup_logging
 
 
 BX_LAT, BX_LON = 47.6154255, -122.2035954  # Bellevue Square Mall
@@ -70,7 +74,9 @@ def main(argv: list[str] | None = None) -> None:
     # ------------------------------------------------------------------
     # 4.  Haversine distance to Bellevue Square Mall
     # ------------------------------------------------------------------
-    df["Distance Miles"] = df.apply(_bx_distance, axis=1)
+    df["Distance Miles"] = (
+        haversine_miles_series(df["lat"], df["lon"], BX_LAT, BX_LON).round(2)
+    )
 
     # ------------------------------------------------------------------
     # 5.  Quick lead-quality flags
