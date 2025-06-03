@@ -57,110 +57,120 @@ def enrich() -> None:
     ).fetchall()
 
     success, fail = 0, 0
-    for place_id, name, city, state, lat, lon, local_phone, google_types_str in rows:
-        params: dict[str, Any] = {"term": f"{name} {city}", "limit": 5}
-        if lat is not None and lon is not None:
-            params.update({"latitude": lat, "longitude": lon})
-        else:
-            params["location"] = f"{city}, {state}"
+    with requests.Session() as session:
+        for (
+            place_id,
+            name,
+            city,
+            state,
+            lat,
+            lon,
+            local_phone,
+            google_types_str,
+        ) in rows:
+            params: dict[str, Any] = {"term": f"{name} {city}", "limit": 5}
+            if lat is not None and lon is not None:
+                params.update({"latitude": lat, "longitude": lon})
+            else:
+                params["location"] = f"{city}, {state}"
 
-        try:
-            r = requests.get(SEARCH_URL, headers=HEADERS, params=params, timeout=10)
-            r.raise_for_status()
-            biz_candidates = r.json().get("businesses") or []
-        except Exception:
-            biz_candidates = []  # network / JSON error → treat as no match
-
-        best, best_score = None, 0
-        for cand in biz_candidates:
-            cand_name = cand.get("name") or ""
-            score = fuzz.token_set_ratio(name, cand_name)
-            if score > best_score:
-                best_score = score
-                best = cand
-
-        # fallback to phone-based search if we didn't get a strong match
-        if (not best or best_score < MATCH_THRESHOLD) and local_phone:
             try:
-                r2 = requests.get(
-                    PHONE_SEARCH_URL,
-                    headers=HEADERS,
-                    params={"phone": local_phone},
-                    timeout=10,
-                )
-                r2.raise_for_status()
-                phone_biz = (r2.json().get("businesses") or [None])[0]
+                r = session.get(SEARCH_URL, headers=HEADERS, params=params, timeout=10)
+                r.raise_for_status()
+                biz_candidates = r.json().get("businesses") or []
             except Exception:
-                phone_biz = None
-            if phone_biz:
-                best = phone_biz
-                best_score = 100
+                biz_candidates = []  # network / JSON error → treat as no match
 
-        if not best or best_score < MATCH_THRESHOLD:
-            raw_results = biz_candidates
-            logging.debug(
-                "Yelp search for %r at (%s,%s) returned %d candidates: %s",
-                name,
-                lat,
-                lon,
-                len(raw_results),
-                [c.get("name") for c in raw_results],
-            )
+            best, best_score = None, 0
+            for cand in biz_candidates:
+                cand_name = cand.get("name") or ""
+                score = fuzz.token_set_ratio(name, cand_name)
+                if score > best_score:
+                    best_score = score
+                    best = cand
 
-            google_aliases = [a.strip() for a in (google_types_str or "").split(",") if a.strip()]
-            google_titles = [a.replace("_", " ").title() for a in google_aliases]
-            fallback_titles = ",".join(google_titles) if google_titles else None
+            # fallback to phone-based search if we didn't get a strong match
+            if (not best or best_score < MATCH_THRESHOLD) and local_phone:
+                try:
+                    r2 = session.get(
+                        PHONE_SEARCH_URL,
+                        headers=HEADERS,
+                        params={"phone": local_phone},
+                        timeout=10,
+                    )
+                    r2.raise_for_status()
+                    phone_biz = (r2.json().get("businesses") or [None])[0]
+                except Exception:
+                    phone_biz = None
+                if phone_biz:
+                    best = phone_biz
+                    best_score = 100
+
+            if not best or best_score < MATCH_THRESHOLD:
+                raw_results = biz_candidates
+                logging.debug(
+                    "Yelp search for %r at (%s,%s) returned %d candidates: %s",
+                    name,
+                    lat,
+                    lon,
+                    len(raw_results),
+                    [c.get("name") for c in raw_results],
+                )
+
+                google_aliases = [a.strip() for a in (google_types_str or "").split(",") if a.strip()]
+                google_titles = [a.replace("_", " ").title() for a in google_aliases]
+                fallback_titles = ",".join(google_titles) if google_titles else None
+
+                cur.execute(
+                    """
+                    UPDATE places SET
+                        yelp_cuisines         = NULL,
+                        yelp_primary_cuisine  = NULL,
+                        yelp_category_titles  = ?,
+                        yelp_status           = 'FAIL'
+                    WHERE place_id = ?
+                    """,
+                    (fallback_titles, place_id),
+                )
+                fail += 1
+                continue
+
+            biz = best
+
+            cats = biz.get("categories") or []
+            if DEBUG:
+                print(f"[DBG] biz categories for {place_id}: {cats}")
+            aliases = [c.get("alias") for c in cats if c and c.get("alias")]
+            titles = [c.get("title") for c in cats if c and c.get("title")]
+            cuisines = ",".join(aliases) if aliases else None
+            primary_cuisine = aliases[0] if aliases else None
+            category_titles = ",".join(titles) if titles else None
+            if DEBUG:
+                print(f"[DBG] storing yelp_category_titles: {category_titles!r}")
 
             cur.execute(
                 """
                 UPDATE places SET
-                    yelp_cuisines         = NULL,
-                    yelp_primary_cuisine  = NULL,
-                    yelp_category_titles  = ?,
-                    yelp_status           = 'FAIL'
+                    yelp_rating         = ?,
+                    yelp_reviews        = ?,
+                    yelp_price_tier     = ?,
+                    yelp_cuisines       = ?,
+                    yelp_primary_cuisine= ?,
+                    yelp_category_titles= ?,
+                    yelp_status         = 'SUCCESS'
                 WHERE place_id = ?
                 """,
-                (fallback_titles, place_id),
+                (
+                    biz.get("rating"),
+                    biz.get("review_count"),
+                    biz.get("price"),
+                    cuisines,
+                    primary_cuisine,
+                    category_titles,
+                    place_id,
+                ),
             )
-            fail += 1
-            continue
-
-        biz = best
-
-        cats = biz.get("categories") or []
-        if DEBUG:
-            print(f"[DBG] biz categories for {place_id}: {cats}")
-        aliases = [c.get("alias") for c in cats if c and c.get("alias")]
-        titles = [c.get("title") for c in cats if c and c.get("title")]
-        cuisines = ",".join(aliases) if aliases else None
-        primary_cuisine = aliases[0] if aliases else None
-        category_titles = ",".join(titles) if titles else None
-        if DEBUG:
-            print(f"[DBG] storing yelp_category_titles: {category_titles!r}")
-
-        cur.execute(
-            """
-            UPDATE places SET
-                yelp_rating         = ?,
-                yelp_reviews        = ?,
-                yelp_price_tier     = ?,
-                yelp_cuisines       = ?,
-                yelp_primary_cuisine= ?,
-                yelp_category_titles= ?,
-                yelp_status         = 'SUCCESS'
-            WHERE place_id = ?
-            """,
-            (
-                biz.get("rating"),
-                biz.get("review_count"),
-                biz.get("price"),
-                cuisines,
-                primary_cuisine,
-                category_titles,
-                place_id,
-            ),
-        )
-        success += 1
+            success += 1
 
     conn.commit()
     conn.close()

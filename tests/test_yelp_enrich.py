@@ -70,7 +70,13 @@ def test_enrich_inserts_categories(tmp_path, monkeypatch):
 
         return Resp()
 
-    monkeypatch.setattr(yelp_enrich.requests, "get", dummy_get)
+    monkeypatch.setattr(
+        yelp_enrich.requests.sessions.Session,
+        "get",
+        lambda self, url, headers, params, timeout: dummy_get(
+            url, headers, params, timeout
+        ),
+    )
 
     yelp_enrich.enrich()
 
@@ -131,7 +137,13 @@ def test_enrich_selects_best_match(tmp_path, monkeypatch):
 
         return Resp()
 
-    monkeypatch.setattr(yelp_enrich.requests, "get", dummy_get)
+    monkeypatch.setattr(
+        yelp_enrich.requests.sessions.Session,
+        "get",
+        lambda self, url, headers, params, timeout: dummy_get(
+            url, headers, params, timeout
+        ),
+    )
 
     yelp_enrich.enrich()
 
@@ -181,7 +193,13 @@ def test_enrich_no_candidate_above_threshold(tmp_path, monkeypatch):
 
         return Resp()
 
-    monkeypatch.setattr(yelp_enrich.requests, "get", dummy_get)
+    monkeypatch.setattr(
+        yelp_enrich.requests.sessions.Session,
+        "get",
+        lambda self, url, headers, params, timeout: dummy_get(
+            url, headers, params, timeout
+        ),
+    )
 
     yelp_enrich.enrich()
 
@@ -232,7 +250,13 @@ def test_enrich_retries_missing_categories(tmp_path, monkeypatch):
 
         return Resp()
 
-    monkeypatch.setattr(yelp_enrich.requests, "get", dummy_get)
+    monkeypatch.setattr(
+        yelp_enrich.requests.sessions.Session,
+        "get",
+        lambda self, url, headers, params, timeout: dummy_get(
+            url, headers, params, timeout
+        ),
+    )
 
     yelp_enrich.enrich()
 
@@ -289,7 +313,13 @@ def test_enrich_fallbacks_to_phone_search(tmp_path, monkeypatch):
             return Resp()
         raise AssertionError("unexpected URL")
 
-    monkeypatch.setattr(yelp_enrich.requests, "get", dummy_get)
+    monkeypatch.setattr(
+        yelp_enrich.requests.sessions.Session,
+        "get",
+        lambda self, url, headers, params, timeout: dummy_get(
+            url, headers, params, timeout
+        ),
+    )
 
     yelp_enrich.enrich()
 
@@ -330,7 +360,13 @@ def test_enrich_fallbacks_to_google_types(tmp_path, monkeypatch):
 
         return Resp()
 
-    monkeypatch.setattr(yelp_enrich.requests, "get", dummy_get)
+    monkeypatch.setattr(
+        yelp_enrich.requests.sessions.Session,
+        "get",
+        lambda self, url, headers, params, timeout: dummy_get(
+            url, headers, params, timeout
+        ),
+    )
 
     yelp_enrich.enrich()
 
