@@ -7,6 +7,7 @@ import pathlib
 import sqlite3
 import logging
 import argparse
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 try:
     from restaurants.utils import setup_logging, normalize_hours, haversine_miles
@@ -106,6 +107,7 @@ def fetch_google_places(zip_codes: list[str]) -> None:
                     logging.error("Error during Text Search for %s: %s", zip_code, exc)
                     break
 
+                page_rows = []
                 for result in data.get("results", []):
                     name = result.get("name", "")
                     if any(block in name.lower() for block in CHAIN_BLOCKLIST):
@@ -122,93 +124,100 @@ def fetch_google_places(zip_codes: list[str]) -> None:
                         "lon": result["geometry"]["location"].get("lng"),
                     }
 
-                    # ---------- Place Details enrichment ----------
                     det_params = {
                         "key": GOOGLE_API_KEY,
                         "place_id": basic_row["Place ID"],
                         "fields": (
-                            "formatted_phone_number,international_phone_number,website,opening_hours,"  # essentials
+                            "formatted_phone_number,international_phone_number,website,opening_hours,"
                             "price_level,types,address_components,photo"
                         ),
                     }
-                    details = {}
+                    page_rows.append((basic_row, det_params, name))
+
+                def _fetch_details(d_params: dict, r_name: str) -> dict:
                     for attempt in range(3):
                         try:
-                            d_resp = session.get(details_url, params=det_params, timeout=15)
+                            d_resp = session.get(details_url, params=d_params, timeout=15)
                             d_resp.raise_for_status()
-                            details = d_resp.json().get("result", {})
-                            break
+                            return d_resp.json().get("result", {})
                         except Exception as exc:
                             if attempt == 2:
-                                logging.error("Details failed for %s: %s", name, exc)
+                                logging.error("Details failed for %s: %s", r_name, exc)
                             else:
                                 time.sleep(1)
+                    return {}
 
-                    # ----- Parse extra fields -----
-                    opening_hours_raw = details.get("opening_hours", {}).get("weekday_text", [])
-                    photos = details.get("photos", [])
-                    addr_comps = details.get("address_components", [])
-
-                    def _parse_hours(items: list[str]) -> dict:
-                        out: dict[str, str] = {}
-                        for seg in items:
-                            if ":" not in seg:
-                                continue
-                            day, times = seg.split(":", 1)
-                            out[day.strip()] = times.strip()
-                        return out
-
-                    hours_dict = (
-                        normalize_hours(_parse_hours(opening_hours_raw))
-                        if opening_hours_raw
-                        else {}
-                    )
-
-                    def _ac(key: str):
-                        for comp in addr_comps:
-                            if key in comp.get("types", []):
-                                return comp.get("long_name")
-                        return ""
-
-                    street = f"{_ac('street_number')} {_ac('route')}".strip()
-
-                    enriched = {
-                        "Formatted Phone Number": details.get("formatted_phone_number"),
-                        "International Phone Number": details.get("international_phone_number"),
-                        "Website": details.get("website"),
-                        "Opening Hours": (
-                            "; ".join(f"{d}: {t}" for d, t in hours_dict.items())
-                            if hours_dict
-                            else None
-                        ),
-                        "Price Level": details.get("price_level"),
-                        "Types": ",".join(details.get("types", [])),
-                        "Category": (details.get("types") or [None])[0],
-                        "Photo Reference": photos[0].get("photo_reference") if photos else None,
-                        "Street Address": street,
-                        "City": _ac("locality"),
-                        "State": _ac("administrative_area_level_1"),
-                        "Zip Code": _ac("postal_code") or zip_code,
+                with ThreadPoolExecutor(max_workers=8) as executor:
+                    future_map = {
+                        executor.submit(_fetch_details, dp, nm): br
+                        for br, dp, nm in page_rows
                     }
+                    for fut in as_completed(list(future_map)):
+                        basic_row = future_map[fut]
+                        details = fut.result()
 
-                    # distance from Olympia center
-                    dist = haversine_miles(
-                        OLYMPIA_LAT,
-                        OLYMPIA_LON,
-                        basic_row["lat"],
-                        basic_row["lon"],
-                    )
-                    enriched["Distance Miles"] = round(dist, 2) if dist is not None else None
+                        opening_hours_raw = details.get("opening_hours", {}).get("weekday_text", [])
+                        photos = details.get("photos", [])
+                        addr_comps = details.get("address_components", [])
 
-                    # final row
-                    smb_restaurants_data.append(
-                        {
-                            **basic_row,
-                            **enriched,
-                            "source": "google_places_smb",
-                            "last_seen": datetime.now(timezone.utc).isoformat(),
+                        def _parse_hours(items: list[str]) -> dict:
+                            out: dict[str, str] = {}
+                            for seg in items:
+                                if ":" not in seg:
+                                    continue
+                                day, times = seg.split(":", 1)
+                                out[day.strip()] = times.strip()
+                            return out
+
+                        hours_dict = (
+                            normalize_hours(_parse_hours(opening_hours_raw))
+                            if opening_hours_raw
+                            else {}
+                        )
+
+                        def _ac(key: str):
+                            for comp in addr_comps:
+                                if key in comp.get("types", []):
+                                    return comp.get("long_name")
+                            return ""
+
+                        street = f"{_ac('street_number')} {_ac('route')}".strip()
+
+                        enriched = {
+                            "Formatted Phone Number": details.get("formatted_phone_number"),
+                            "International Phone Number": details.get("international_phone_number"),
+                            "Website": details.get("website"),
+                            "Opening Hours": (
+                                "; ".join(f"{d}: {t}" for d, t in hours_dict.items())
+                                if hours_dict
+                                else None
+                            ),
+                            "Price Level": details.get("price_level"),
+                            "Types": ",".join(details.get("types", [])),
+                            "Category": (details.get("types") or [None])[0],
+                            "Photo Reference": photos[0].get("photo_reference") if photos else None,
+                            "Street Address": street,
+                            "City": _ac("locality"),
+                            "State": _ac("administrative_area_level_1"),
+                            "Zip Code": _ac("postal_code") or zip_code,
                         }
-                    )
+
+                        dist = haversine_miles(
+                            OLYMPIA_LAT,
+                            OLYMPIA_LON,
+                            basic_row["lat"],
+                            basic_row["lon"],
+                        )
+                        enriched["Distance Miles"] = round(dist, 2) if dist is not None else None
+
+                        smb_restaurants_data.append(
+                            {
+                                **basic_row,
+                                **enriched,
+                                "source": "google_places_smb",
+                                "last_seen": datetime.now(timezone.utc).isoformat(),
+                            }
+                        )
 
                 # ----- paging (run once per Google response) -----
                 next_token = data.get("next_page_token")
