@@ -68,8 +68,15 @@ OVERPASS_ENDPOINT = "https://overpass-api.de/api/interpreter"
 # 1) GOOGLE PLACES FETCHER -----------------------------------------------------
 # -----------------------------------------------------------------------------
 
-def fetch_google_places() -> None:
-    """Populate smb_restaurants_data with enriched Google Places SMB rows."""
+def fetch_google_places(zip_codes: list[str]) -> None:
+    """Populate ``smb_restaurants_data`` with Google Places SMB rows.
+
+    Parameters
+    ----------
+    zip_codes:
+        List of ZIP codes to query. The function iterates over them in the
+        provided order and extends ``smb_restaurants_data`` with the results.
+    """
 
     if not check_network():
         logging.info("Skipping Google Places fetch due to no network connectivity.")
@@ -79,7 +86,7 @@ def fetch_google_places() -> None:
     details_url = "https://maps.googleapis.com/maps/api/place/details/json"
 
     with requests.Session() as session:
-        for zip_code in TARGET_OLYMPIA_ZIPS:
+        for zip_code in zip_codes:
             logging.info("Fetching Google Places data for ZIP %s…", zip_code)
             params = {"key": GOOGLE_API_KEY, "query": f"restaurants in {zip_code} WA"}
             page = 1
@@ -247,11 +254,30 @@ def main(argv: list[str] | None = None) -> None:
         dest="yelp_json",
         help="Path to write Yelp fetch JSON and import into the DB",
     )
+    parser.add_argument(
+        "--zips",
+        dest="zips",
+        help="Comma-separated list of ZIP codes to query",
+    )
     args = parser.parse_args(argv)
 
     setup_logging()
     smb_restaurants_data.clear()
-    fetch_google_places()
+    if args.zips:
+        zip_list = [z.strip() for z in args.zips.split(",") if z.strip()]
+    else:
+        try:
+            input_str = input(
+                "Enter comma-separated ZIP codes (blank for default list): "
+            ).strip()
+        except EOFError:
+            input_str = ""
+        if input_str:
+            zip_list = [z.strip() for z in input_str.split(",") if z.strip()]
+        else:
+            zip_list = [str(z) for z in TARGET_OLYMPIA_ZIPS]
+
+    fetch_google_places(zip_list)
 
     if not smb_restaurants_data:
         logging.info("No SMB restaurants found – nothing to write.")
@@ -267,7 +293,7 @@ def main(argv: list[str] | None = None) -> None:
     loader.load(csv_path)
 
     if args.yelp_json:
-        results = yelp_fetch.enrich_restaurants(TARGET_OLYMPIA_ZIPS[0])
+        results = yelp_fetch.enrich_restaurants(zip_list[0])
         yelp_path = pathlib.Path(args.yelp_json)
         if results:
             if yelp_path.is_dir():

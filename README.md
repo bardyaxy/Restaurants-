@@ -34,8 +34,9 @@ This project collects restaurant information for ZIP codes around Olympia, Washi
    python -m restaurants.refresh_restaurants
    ```
 
-The script currently targets a single ZIP code (`DEFAULT_ZIP`). Adjust
-`TARGET_OLYMPIA_ZIPS` in `config.py` if you need additional areas.
+By default `refresh_restaurants.py` iterates over the `TARGET_OLYMPIA_ZIPS`
+list in `config.py`.  You can pass `--zips 98501,98502` or enter a list when
+prompted to restrict the fetch to specific ZIP codes.
 
 ## Toast lead enrichment
 
@@ -50,6 +51,10 @@ categories. The script searches Yelp by the restaurant name and city and scans
  only applies it when the score is at least 60 (configurable via `YELP_MATCH_THRESHOLD`). If no strong match is found and a
 phone number is available, the script falls back to a phone-based Yelp search.
 Rows without a valid match are left unchanged and marked as `FAIL`.
+
+Ensure the `dela.sqlite` database exists (created by `refresh_restaurants.py`)
+and that `YELP_API_KEY` is set before running. If either is missing the script
+exits with a message explaining what is required.
 
 Set `YELP_DEBUG=1` to print debug information about failed lookups, including
 all Yelp candidate names returned for each query.

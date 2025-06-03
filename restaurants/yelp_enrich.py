@@ -21,7 +21,9 @@ except Exception:  # pragma: no cover - fallback for running as script
 DB_PATH = pathlib.Path(__file__).with_name("dela.sqlite")
 
 if not YELP_API_KEY:
-    raise SystemExit("⚠️  Set YELP_API_KEY first (env var or .env file)")
+    raise SystemExit(
+        "Missing YELP_API_KEY. Set it in your environment or .env file before running."
+    )
 
 HEADERS = {"Authorization": f"Bearer {YELP_API_KEY}"}
 SEARCH_URL = "https://api.yelp.com/v3/businesses/search"
@@ -36,7 +38,9 @@ logging.basicConfig(level=logging.DEBUG if DEBUG else logging.INFO)
 # --------------------------------------------------------------------------- #
 def enrich() -> None:
     if not DB_PATH.exists():
-        raise SystemExit(f"Database not found: {DB_PATH}")
+        raise SystemExit(
+            f"Database not found: {DB_PATH}. Run refresh_restaurants.py first."
+        )
 
     if not check_network():
         print("[WARN] Yelp enrichment skipped – network unreachable.")
