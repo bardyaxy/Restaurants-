@@ -35,12 +35,11 @@ def haversine_miles_series(
 ) -> pd.Series:
     """Vectorized haversine distance in miles to a reference point."""
 
-    lat = lat_series.astype(float).to_numpy()
-    lon = lon_series.astype(float).to_numpy()
+    lat = lat_series.to_numpy(dtype=float)
+    lon = lon_series.to_numpy(dtype=float)
 
     mask = ~np.isnan(lat) & ~np.isnan(lon)
-    result = np.empty(lat.shape[0])
-    result[:] = np.nan
+    result = np.full(lat.shape[0], np.nan)
 
     if mask.any():
         R = 3958.8
@@ -51,9 +50,8 @@ def haversine_miles_series(
         a = np.sin(dphi / 2) ** 2 + np.cos(phi1) * np.cos(phi2) * np.sin(dlambda / 2) ** 2
         result[mask] = 2 * R * np.arctan2(np.sqrt(a), np.sqrt(1 - a))
 
-    series = pd.Series([None] * len(lat_series), index=lat_series.index, dtype=object)
-    for idx in np.where(mask)[0]:
-        series.iloc[idx] = result[idx]
+    series = pd.Series(result, index=lat_series.index)
+    series[~mask] = None
     return series
 
 
