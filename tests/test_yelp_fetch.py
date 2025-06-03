@@ -42,9 +42,11 @@ def test_search_yelp_businesses_paginates(monkeypatch):
 
 def test_cli_writes_json(tmp_path, monkeypatch):
     os.environ["YELP_API_KEY"] = "TEST"
+    os.environ["YELP_ZIP"] = "12345"
+    os.environ["YELP_OUT"] = str(tmp_path / "out.json")
     yf = importlib.import_module("restaurants.yelp_fetch")
 
-    monkeypatch.setattr(yf, "enrich_restaurants", lambda zip: [{"id": "x"}])
+    monkeypatch.setattr(yf, "enrich_restaurants", lambda zip_code: [{"id": zip_code}])
     monkeypatch.setattr(yf, "setup_logging", lambda *a, **kw: None)
 
     class FixedDatetime(datetime):
@@ -55,11 +57,9 @@ def test_cli_writes_json(tmp_path, monkeypatch):
     monkeypatch.setattr(yf, "datetime", FixedDatetime)
 
     monkeypatch.chdir(tmp_path)
-    yf.main(["12345"])
+    yf.main([])
 
-    files = list(Path(tmp_path).glob("yelp_businesses_12345_*.json"))
-    assert len(files) == 1
-    with files[0].open() as f:
+    with Path(os.environ["YELP_OUT"]).open() as f:
         data = json.load(f)
-    assert data == [{"id": "x"}]
+    assert data == [{"id": "12345"}]
 

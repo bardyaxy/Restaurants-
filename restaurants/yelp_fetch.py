@@ -6,17 +6,18 @@ import argparse
 import json
 import logging
 import pathlib
+import os
 from datetime import datetime
 from typing import Any
 
 import requests
 
 try:
-    from restaurants.config import YELP_API_KEY
+    from restaurants.config import YELP_API_KEY, DEFAULT_ZIP
     from restaurants.network_utils import check_network
     from restaurants.utils import setup_logging
 except Exception:  # pragma: no cover - fallback for running as script
-    from config import YELP_API_KEY
+    from config import YELP_API_KEY, DEFAULT_ZIP
     from network_utils import check_network
     try:
         from utils import setup_logging
@@ -112,13 +113,29 @@ def enrich_restaurants(zip_code: str) -> list[dict[str, Any]]:
 
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description="Fetch Yelp restaurant data")
-    parser.add_argument("zip", help="ZIP code to query")
+    parser.add_argument(
+        "--zip",
+        dest="zip_code",
+        default=os.getenv("YELP_ZIP", DEFAULT_ZIP),
+        help="ZIP code to query (env YELP_ZIP)",
+    )
+    parser.add_argument(
+        "--out",
+        dest="out_path",
+        default=os.getenv("YELP_OUT"),
+        help="Output JSON file path (env YELP_OUT)",
+    )
     args = parser.parse_args(argv)
 
     setup_logging()
-    results = enrich_restaurants(args.zip)
+    results = enrich_restaurants(args.zip_code)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    out_file = pathlib.Path(f"yelp_businesses_{args.zip}_{timestamp}.json")
+    out_file = pathlib.Path(
+        args.out_path
+        or f"yelp_businesses_{args.zip_code}_{timestamp}.json"
+    )
+    if out_file.is_dir():
+        out_file = out_file / f"yelp_businesses_{args.zip_code}_{timestamp}.json"
     if results:
         with out_file.open("w", encoding="utf-8") as f:
             json.dump(results, f, indent=2)

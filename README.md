@@ -22,7 +22,9 @@ This project collects restaurant information for ZIP codes around Olympia, Washi
    ```bash
    pip install -e .
    ```
-2. Copy `.env.template` to `.env` and fill in your `GOOGLE_API_KEY`. Other keys are optional. Configuration is loaded via `config.py`.
+2. Copy `.env.template` to `.env` and fill in your `GOOGLE_API_KEY`. Other keys
+   like `YELP_API_KEY` are optional but required for Yelp utilities. Configuration
+   is loaded via `config.py` which also exposes `DEFAULT_ZIP` (set to `98501`).
 3. Run the refresh command:
    ```bash
    refresh-restaurants
@@ -32,7 +34,8 @@ This project collects restaurant information for ZIP codes around Olympia, Washi
    python -m restaurants.refresh_restaurants
    ```
 
-The script currently targets a single ZIP code (`98501`). Adjust `TARGET_OLYMPIA_ZIPS` in `config.py` if you need additional areas.
+The script currently targets a single ZIP code (`DEFAULT_ZIP`). Adjust
+`TARGET_OLYMPIA_ZIPS` in `config.py` if you need additional areas.
 
 ## Toast lead enrichment
 
@@ -59,10 +62,12 @@ comma‑separated string, with the first alias stored separately as
 To fetch Yelp business data directly for a given ZIP code run:
 
 ```bash
-python -m restaurants.yelp_fetch <zip>
+python -m restaurants.yelp_fetch --zip 98501 --out output.json
 ```
-This writes `yelp_businesses_<zip>_<timestamp>.json` with the search results,
-business details and reviews.
+`yelp_fetch.py` also reads the `YELP_ZIP` and `YELP_OUT` environment variables if
+present. When neither a command line argument nor `YELP_ZIP` is provided it
+falls back to `DEFAULT_ZIP`. The script writes
+`yelp_businesses_<zip>_<timestamp>.json` by default.
 
 ## Tests
 
