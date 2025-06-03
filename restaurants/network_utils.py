@@ -30,7 +30,9 @@ def check_network(
 
     try:
         if method.upper() == "HEAD":
-            requests.head(url, timeout=timeout)
+            # ``allow_redirects`` avoids downloading large responses and
+            # is explicitly disabled for ``HEAD`` requests as well
+            requests.head(url, timeout=timeout, allow_redirects=False)
         else:
             # ``allow_redirects`` avoids downloading large responses
             requests.get(url, timeout=timeout, allow_redirects=False)

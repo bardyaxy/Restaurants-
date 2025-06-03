@@ -25,7 +25,9 @@ def test_check_network_failure(monkeypatch):
 
 
 def test_check_network_head(monkeypatch):
-    def dummy_head(url, timeout):
+    def dummy_head(url, timeout, allow_redirects):
+        assert allow_redirects is False
+
         class Resp:
             pass
 
