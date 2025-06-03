@@ -1,4 +1,4 @@
-"""Add Yelp ratings, review counts, price tiers, and categories to dela.sqlite."""
+"""Add Yelp ratings, review counts, price tiers, and category titles to dela.sqlite."""
 
 from __future__ import annotations
 
@@ -48,7 +48,7 @@ def enrich() -> None:
     # queue rows that were never touched or are missing cuisines (old DB schema)
     rows = cur.execute(
         """
-        SELECT place_id, name, city, state, lat, lon, local_phone
+        SELECT place_id, name, city, state, lat, lon, local_phone, categories
         FROM   places
         WHERE  yelp_status IS NULL
            OR  yelp_status IN ('open','closed')
@@ -57,7 +57,7 @@ def enrich() -> None:
     ).fetchall()
 
     success, fail = 0, 0
-    for place_id, name, city, state, lat, lon, local_phone in rows:
+    for place_id, name, city, state, lat, lon, local_phone, google_types_str in rows:
         params: dict[str, Any] = {"term": f"{name} {city}", "limit": 5}
         if lat is not None and lon is not None:
             params.update({"latitude": lat, "longitude": lon})
@@ -106,9 +106,21 @@ def enrich() -> None:
                 len(raw_results),
                 [c.get("name") for c in raw_results],
             )
+
+            google_aliases = [a.strip() for a in (google_types_str or "").split(",") if a.strip()]
+            google_titles = [a.replace("_", " ").title() for a in google_aliases]
+            fallback_titles = ",".join(google_titles) if google_titles else None
+
             cur.execute(
-                "UPDATE places SET yelp_status='FAIL' WHERE place_id=?",
-                (place_id,),
+                """
+                UPDATE places SET
+                    yelp_cuisines         = NULL,
+                    yelp_primary_cuisine  = NULL,
+                    yelp_category_titles  = ?,
+                    yelp_status           = 'FAIL'
+                WHERE place_id = ?
+                """,
+                (fallback_titles, place_id),
             )
             fail += 1
             continue
