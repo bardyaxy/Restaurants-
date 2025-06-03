@@ -41,7 +41,9 @@ prompted to restrict the fetch to specific ZIP codes.
 ## Toast lead enrichment
 
 1. Run `toast_leads.py` to gather additional restaurant leads. Ensure the `GOOGLE_API_KEY` environment variable is set before running.
-2. The script outputs an `olympia_toast_smb_<timestamp>.csv` and caches processed place IDs in `seen_place_ids.json` so only new results are fetched.
+2. Edit `toast_zips.txt` with the ZIP codes you want to query. Each line should
+   contain a single ZIP code. The script only reads ZIP codes from this file.
+3. The script outputs an `olympia_toast_smb_<timestamp>.csv` and caches processed place IDs in `seen_place_ids.json` so only new results are fetched.
 
 ## Yelp enrichment
 
