@@ -14,6 +14,7 @@ try:
     from restaurants.config import GOOGLE_API_KEY
     from restaurants.chain_blocklist import CHAIN_BLOCKLIST            # names to skip
     from restaurants.network_utils import check_network                # simple ping check
+    from restaurants.utils import setup_logging
 except Exception:  # pragma: no cover - fallback when running as script
     from config import GOOGLE_API_KEY
     try:
@@ -25,15 +26,10 @@ except Exception:  # pragma: no cover - fallback when running as script
     except Exception:
         def check_network() -> bool:
             return True
+    from utils import setup_logging
 
 SEARCH_URL  = "https://maps.googleapis.com/maps/api/place/textsearch/json"
 DETAILS_URL = "https://maps.googleapis.com/maps/api/place/details/json"
-
-logging.basicConfig(
-    filename="error.log",
-    level=logging.ERROR,
-    format="%(asctime)s %(levelname)s: %(message)s",
-)
 
 # ---------------------------------------------------------------------------
 # 1.  Helpers
@@ -83,6 +79,7 @@ def load_zip_codes(path: str = ZIP_FILE) -> list[str]:
 
 
 def main() -> None:
+    setup_logging()
     zip_list = load_zip_codes()
     if not zip_list:
         print(f"No ZIP codes found in {ZIP_FILE}.")
