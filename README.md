@@ -89,3 +89,14 @@ pytest
 
 Alternatively you can adjust `PYTHONPATH` so the `restaurants` imports in the
 tests resolve.
+
+## Type checking
+
+Install the development requirements to enable `mypy` type checking. The file
+`requirements-dev.txt` now includes stub packages such as `types-requests` and
+`pandas-stubs` so `mypy` can analyze the project without missing-import errors:
+
+```bash
+pip install -r requirements-dev.txt
+mypy restaurants
+```
