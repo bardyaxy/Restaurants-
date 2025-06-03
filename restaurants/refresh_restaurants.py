@@ -32,7 +32,7 @@ except Exception:  # pragma: no cover - fallback for running as script
     )
     from chain_blocklist import CHAIN_BLOCKLIST  # list of substrings that ID big chains
     from network_utils import check_network
-MAX_PAGES = 6   # safety cap; tweak per need
+MAX_PAGES = 15   # safety cap; tweak per need
 
 # -----------------------------------------------------------------------------
 # OPTIONAL DEPENDENCIES --------------------------------------------------------
