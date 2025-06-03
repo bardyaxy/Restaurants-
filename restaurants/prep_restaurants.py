@@ -1,46 +1,27 @@
 #!/usr/bin/env python3
-"""
-Clean Google SMB CSV and generate:
-  • restaurants_prepped.csv   (UTF-8 CSV)
-  • restaurants_prepped.xlsx  (Excel, pivot-ready)
-"""
+"""Clean Google SMB CSV and generate tidy outputs."""
+
+from __future__ import annotations
 
 import glob
-import pandas as pd
 import logging
+import pandas as pd
+
 try:
     from restaurants.utils import haversine_miles, setup_logging
 except Exception:  # pragma: no cover - fallback for running as script
     from utils import haversine_miles, setup_logging
 
-setup_logging()
 
-# ---------------------------------------------------------------------
-# 0.  Load the most-recent Google export
-# ---------------------------------------------------------------------
-matches = sorted(glob.glob("olympia_smb_google_restaurants_*.csv"))
-if not matches:
-    raise SystemExit("No olympia_smb_google_restaurants_*.csv files found")
-newest = matches[-1]
-df = pd.read_csv(newest)
+BX_LAT, BX_LON = 47.6154255, -122.2035954  # Bellevue Square Mall
 
-# ---------------------------------------------------------------------
-# 1.  UTF-8 cleanup (narrow no-break space)
-# ---------------------------------------------------------------------
-df["Opening Hours"] = (
-    df["Opening Hours"]
-      .str.replace("\u202f", " ", regex=False)   # NARROW NO-BREAK SPACE → space
-)
 
-# ---------------------------------------------------------------------
-# 2.  Split opening hours into a dict per row
-# ---------------------------------------------------------------------
 def split_hours(text: str) -> dict:
     """Parse semicolon-separated hours into a dictionary."""
     if pd.isna(text) or not text:
         return {}
 
-    out = {}
+    out: dict[str, str] = {}
     for segment in text.split(";"):
         if ":" not in segment:
             continue
@@ -48,53 +29,82 @@ def split_hours(text: str) -> dict:
         out[day.strip()] = hours.strip()
     return out
 
-df["Opening Hours"] = df["Opening Hours"].apply(split_hours)
 
-# ---------------------------------------------------------------------
-# 3.  Numeric price level → $, $$, $$$ …
-# ---------------------------------------------------------------------
-price_map = {0: "", 1: "$", 2: "$$", 3: "$$$", 4: "$$$$"}
-df["Price"] = df["Price Level"].map(price_map).fillna("")
-
-# ---------------------------------------------------------------------
-# 4.  Haversine distance to Bellevue Square Mall
-# ---------------------------------------------------------------------
-BX_LAT, BX_LON = 47.6154255, -122.2035954      # Bellevue Square Mall
-
-def _bx_distance(row):
+def _bx_distance(row: pd.Series) -> float | None:
     dist = haversine_miles(row["lat"], row["lon"], BX_LAT, BX_LON)
     return round(dist, 2) if dist is not None else None
 
-df["Distance Miles"] = df.apply(_bx_distance, axis=1)
 
-# ---------------------------------------------------------------------
-# 5.  Quick lead-quality flags
-# ---------------------------------------------------------------------
-df["Has Phone"]   = df["Formatted Phone Number"].str.len().gt(0).fillna(False)
-df["Has Website"] = df["Website"].str.len().gt(0).fillna(False)
+def main(argv: list[str] | None = None) -> None:
+    """Entry point for cleaning the latest Google export."""
 
-# ---------------------------------------------------------------------
-# 6.  Drop bulky / duplicate columns
-# ---------------------------------------------------------------------
-drop_cols = [
-    "Photo Reference",
-    "Types",
-    "Price Level",
-    "Street Address",
-    "City",
-    "State",
-    "Zip Code",
-]
-df = df.drop(columns=[c for c in drop_cols if c in df.columns])
+    setup_logging()
 
-# ---------------------------------------------------------------------
-# 7.  Save tidy outputs
-# ---------------------------------------------------------------------
-out_csv  = "restaurants_prepped.csv"
-out_xlsx = "restaurants_prepped.xlsx"
+    # ------------------------------------------------------------------
+    # 0.  Load the most-recent Google export
+    # ------------------------------------------------------------------
+    matches = sorted(glob.glob("olympia_smb_google_restaurants_*.csv"))
+    if not matches:
+        raise SystemExit("No olympia_smb_google_restaurants_*.csv files found")
+    newest = matches[-1]
+    df = pd.read_csv(newest)
 
-df.to_csv(out_csv,  index=False)
-df.to_excel(out_xlsx, index=False, engine="xlsxwriter")
-logging.info(
-    "Cleaned %s → %s & %s  (%s rows)", newest, out_csv, out_xlsx, len(df)
-)
+    # ------------------------------------------------------------------
+    # 1.  UTF-8 cleanup (narrow no-break space)
+    # ------------------------------------------------------------------
+    df["Opening Hours"] = (
+        df["Opening Hours"].str.replace("\u202f", " ", regex=False)
+    )
+
+    # ------------------------------------------------------------------
+    # 2.  Split opening hours into a dict per row
+    # ------------------------------------------------------------------
+    df["Opening Hours"] = df["Opening Hours"].apply(split_hours)
+
+    # ------------------------------------------------------------------
+    # 3.  Numeric price level -> $, $$, $$$ …
+    # ------------------------------------------------------------------
+    price_map = {0: "", 1: "$", 2: "$$", 3: "$$$", 4: "$$$$"}
+    df["Price"] = df["Price Level"].map(price_map).fillna("")
+
+    # ------------------------------------------------------------------
+    # 4.  Haversine distance to Bellevue Square Mall
+    # ------------------------------------------------------------------
+    df["Distance Miles"] = df.apply(_bx_distance, axis=1)
+
+    # ------------------------------------------------------------------
+    # 5.  Quick lead-quality flags
+    # ------------------------------------------------------------------
+    df["Has Phone"] = df["Formatted Phone Number"].str.len().gt(0).fillna(False)
+    df["Has Website"] = df["Website"].str.len().gt(0).fillna(False)
+
+    # ------------------------------------------------------------------
+    # 6.  Drop bulky / duplicate columns
+    # ------------------------------------------------------------------
+    drop_cols = [
+        "Photo Reference",
+        "Types",
+        "Price Level",
+        "Street Address",
+        "City",
+        "State",
+        "Zip Code",
+    ]
+    df = df.drop(columns=[c for c in drop_cols if c in df.columns])
+
+    # ------------------------------------------------------------------
+    # 7.  Save tidy outputs
+    # ------------------------------------------------------------------
+    out_csv = "restaurants_prepped.csv"
+    out_xlsx = "restaurants_prepped.xlsx"
+
+    df.to_csv(out_csv, index=False)
+    df.to_excel(out_xlsx, index=False, engine="xlsxwriter")
+    logging.info(
+        "Cleaned %s → %s & %s  (%s rows)", newest, out_csv, out_xlsx, len(df)
+    )
+
+
+if __name__ == "__main__":  # pragma: no cover - manual execution
+    main()
+
