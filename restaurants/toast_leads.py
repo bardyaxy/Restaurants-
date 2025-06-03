@@ -11,11 +11,11 @@ import requests
 # 0.  Setup
 # ---------------------------------------------------------------------------
 try:
-    from restaurants.config import GOOGLE_API_KEY, TARGET_OLYMPIA_ZIPS
+    from restaurants.config import GOOGLE_API_KEY
     from restaurants.chain_blocklist import CHAIN_BLOCKLIST            # names to skip
     from restaurants.network_utils import check_network                # simple ping check
 except Exception:  # pragma: no cover - fallback when running as script
-    from config import GOOGLE_API_KEY, TARGET_OLYMPIA_ZIPS
+    from config import GOOGLE_API_KEY
     try:
         from chain_blocklist import CHAIN_BLOCKLIST
     except Exception:
@@ -71,7 +71,23 @@ def fetch_details(place_id: str, session: requests.Session) -> dict:
 # ---------------------------------------------------------------------------
 # 2.  Main workflow
 # ---------------------------------------------------------------------------
+ZIP_FILE = "toast_zips.txt"
+
+
+def load_zip_codes(path: str = ZIP_FILE) -> list[str]:
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return [line.strip() for line in f if line.strip()]
+    except FileNotFoundError:
+        return []
+
+
 def main() -> None:
+    zip_list = load_zip_codes()
+    if not zip_list:
+        print(f"No ZIP codes found in {ZIP_FILE}.")
+        return
+
     if not check_network():
         print("[WARN] Skipping Toast leads fetch – network unreachable.")
         return
@@ -82,7 +98,7 @@ def main() -> None:
     with requests.Session() as session:
         session.trust_env = False           # ignore any HTTP(S)_PROXY env vars
 
-        for zip_code in TARGET_OLYMPIA_ZIPS:
+        for zip_code in zip_list:
             params = {
                 "key": GOOGLE_API_KEY,
                 "query": f"restaurants in {zip_code} WA"
