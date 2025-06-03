@@ -47,7 +47,7 @@ prompted to restrict the fetch to specific ZIP codes.
 
 ## Yelp enrichment
 
-Run `yelp_enrich.py` to supplement Google Places rows with Yelp ratings and
+Run `google_yelp_enrich.py` to supplement Google Places rows with Yelp ratings and
 categories. The script searches Yelp by the restaurant name and city and scans
  up to five candidates. `rapidfuzz.fuzz.token_set_ratio` picks the best match and
  only applies it when the score is at least 60 (configurable via `YELP_MATCH_THRESHOLD`). If no strong match is found and a
