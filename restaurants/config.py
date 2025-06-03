@@ -1,7 +1,7 @@
 """Central configuration for API keys and constants used in the Olympia services project.
 
 Loads API keys from environment variables and defines location-based constants for
-Olympia, WA, including ZIP накопcodes and geographic coordinates.
+Olympia, WA, including ZIP codes and geographic coordinates.
 """
 
 from __future__ import annotations
