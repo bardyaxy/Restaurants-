@@ -56,6 +56,14 @@ Each matched Yelp business includes a list of food categories. Their aliases
 comma‑separated string, with the first alias stored separately as
 `yelp_primary_cuisine`.
 
+To fetch Yelp business data directly for a given ZIP code run:
+
+```bash
+python -m restaurants.yelp_fetch <zip>
+```
+This writes `yelp_businesses_<zip>_<timestamp>.json` with the search results,
+business details and reviews.
+
 ## Tests
 
 Ensure the `restaurants` package is importable before running the tests. The
