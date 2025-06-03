@@ -298,3 +298,43 @@ def test_enrich_fallbacks_to_phone_search(tmp_path, monkeypatch):
     ).fetchone()
     assert row == (5.0, "SUCCESS")
     assert calls == {"search": 1, "phone": 1}
+
+
+def test_enrich_fallbacks_to_google_types(tmp_path, monkeypatch):
+    os.environ["YELP_API_KEY"] = "TEST"
+    os.environ.setdefault("GOOGLE_API_KEY", "DUMMY")
+    from restaurants import loader, yelp_enrich
+
+    tmp_db = tmp_path / "dela.sqlite"
+    monkeypatch.setattr(loader, "DB_PATH", tmp_db)
+    conn = loader.ensure_db()
+    conn.execute(
+        "INSERT INTO places (place_id, name, city, state, categories) VALUES (?,?,?,?,?)",
+        ("pid5", "NoMatch", "Olympia", "WA", "ice_cream,food_court"),
+    )
+    conn.commit()
+    conn.close()
+
+    monkeypatch.setattr(yelp_enrich, "DB_PATH", tmp_db)
+    monkeypatch.setattr(yelp_enrich, "check_network", lambda: True)
+
+    def dummy_get(url, headers, params, timeout):
+        class Resp:
+            @staticmethod
+            def raise_for_status():
+                pass
+
+            @staticmethod
+            def json():
+                return {"businesses": []}
+
+        return Resp()
+
+    monkeypatch.setattr(yelp_enrich.requests, "get", dummy_get)
+
+    yelp_enrich.enrich()
+
+    row = sqlite3.connect(tmp_db).execute(
+        "SELECT yelp_category_titles, yelp_status FROM places WHERE place_id='pid5'"
+    ).fetchone()
+    assert row == ("Ice Cream,Food Court", "FAIL")
