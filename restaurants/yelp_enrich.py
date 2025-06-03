@@ -27,7 +27,7 @@ HEADERS = {"Authorization": f"Bearer {YELP_API_KEY}"}
 SEARCH_URL = "https://api.yelp.com/v3/businesses/search"
 PHONE_SEARCH_URL = "https://api.yelp.com/v3/businesses/search/phone"
 
-MATCH_THRESHOLD = int(os.getenv("YELP_MATCH_THRESHOLD", "70"))
+MATCH_THRESHOLD = int(os.getenv("YELP_MATCH_THRESHOLD", "60"))
 DEBUG = bool(os.getenv("YELP_DEBUG"))
 logging.basicConfig(level=logging.DEBUG if DEBUG else logging.INFO)
 

@@ -43,11 +43,10 @@ The script currently targets a single ZIP code (`98501`). Adjust `TARGET_OLYMPIA
 
 Run `yelp_enrich.py` to supplement Google Places rows with Yelp ratings and
 categories. The script searches Yelp by the restaurant name and city and scans
-up to five candidates. `rapidfuzz.fuzz.token_set_ratio` picks the best match and
-only applies it when the score is at least 70. If no strong match is found and a
+ up to five candidates. `rapidfuzz.fuzz.token_set_ratio` picks the best match and
+ only applies it when the score is at least 60 (configurable via `YELP_MATCH_THRESHOLD`). If no strong match is found and a
 phone number is available, the script falls back to a phone-based Yelp search.
 Rows without a valid match are left unchanged and marked as `FAIL`.
-
 
 Set `YELP_DEBUG=1` to print debug information about failed lookups, including
 all Yelp candidate names returned for each query.
