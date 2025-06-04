@@ -35,3 +35,9 @@ def test_fetch_details_error(monkeypatch):
 
     assert tl.fetch_details("pid", DummySession()) == {}
 
+
+def test_load_zip_codes_validation(tmp_path):
+    path = tmp_path / "zips.txt"
+    path.write_text("98101\nabcde\n12345-6789\n")
+    assert tl.load_zip_codes(path) == ["98101", "12345-6789"]
+
