@@ -13,10 +13,9 @@ import logging
 import json
 from datetime import datetime, timezone
 
-try:
-    from restaurants.utils import setup_logging
-except ImportError:  # pragma: no cover - fallback for running as script
-    from utils import setup_logging  # type: ignore
+from restaurants.import_utils import optional_from
+
+setup_logging = optional_from("utils", "setup_logging")[0]
 
 DB_PATH = pathlib.Path(__file__).with_name("dela.sqlite")
 

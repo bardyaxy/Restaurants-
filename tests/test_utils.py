@@ -1,6 +1,6 @@
 import pytest
 import math
-from restaurants.utils import normalize_hours, haversine_miles
+from restaurants.utils import normalize_hours, haversine_miles, is_valid_zip
 
 
 def test_normalize_hours_basic():
@@ -39,3 +39,10 @@ def test_haversine_invalid_nan():
     nan = math.nan
     assert haversine_miles(nan, -122.0, 47.0, -123.0) is None
     assert haversine_miles(47.0, nan, 47.0, -123.0) is None
+
+
+def test_is_valid_zip():
+    assert is_valid_zip("98101")
+    assert is_valid_zip("12345-6789")
+    assert not is_valid_zip("1234")
+    assert not is_valid_zip("abcd")

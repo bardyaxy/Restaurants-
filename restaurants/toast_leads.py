@@ -7,26 +7,26 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import requests
 
+from restaurants.import_utils import optional_from, optional_import
+
 # ---------------------------------------------------------------------------
 # 0.  Setup
 # ---------------------------------------------------------------------------
+
+GOOGLE_API_KEY = optional_from("config", "GOOGLE_API_KEY")[0]
+
 try:
-    from restaurants.config import GOOGLE_API_KEY
-    from restaurants.chain_blocklist import CHAIN_BLOCKLIST            # names to skip
-    from restaurants.network_utils import check_network                # simple ping check
-    from restaurants.utils import setup_logging
-except ImportError:  # pragma: no cover - fallback when running as script
-    from config import GOOGLE_API_KEY  # type: ignore
-    try:
-        from chain_blocklist import CHAIN_BLOCKLIST  # type: ignore
-    except ImportError:
-        CHAIN_BLOCKLIST = []
-    try:
-        from network_utils import check_network  # type: ignore
-    except ImportError:
-        def check_network() -> bool:  # type: ignore[misc]
-            return True
-    from utils import setup_logging  # type: ignore
+    CHAIN_BLOCKLIST = optional_import("chain_blocklist").CHAIN_BLOCKLIST
+except ImportError:
+    CHAIN_BLOCKLIST = []
+
+try:
+    check_network = optional_from("network_utils", "check_network")[0]
+except ImportError:
+    def check_network() -> bool:  # type: ignore[misc]
+        return True
+
+setup_logging, is_valid_zip = optional_from("utils", "setup_logging", "is_valid_zip")
 
 SEARCH_URL  = "https://maps.googleapis.com/maps/api/place/textsearch/json"
 DETAILS_URL = "https://maps.googleapis.com/maps/api/place/details/json"
@@ -73,7 +73,16 @@ ZIP_FILE = "toast_zips.txt"
 def load_zip_codes(path: str = ZIP_FILE) -> list[str]:
     try:
         with open(path, "r", encoding="utf-8") as f:
-            return [line.strip() for line in f if line.strip()]
+            codes: list[str] = []
+            for line in f:
+                code = line.strip()
+                if not code:
+                    continue
+                if is_valid_zip(code):
+                    codes.append(code)
+                else:
+                    logging.warning("Invalid ZIP code ignored: %s", code)
+            return codes
     except FileNotFoundError:
         return []
 

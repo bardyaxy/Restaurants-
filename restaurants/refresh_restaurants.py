@@ -9,29 +9,31 @@ import logging
 import argparse
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-try:
-    from restaurants.utils import setup_logging, normalize_hours, haversine_miles
-    from restaurants import loader
-    from restaurants.config import (
-        GOOGLE_API_KEY,
-        TARGET_OLYMPIA_ZIPS,
-        OLYMPIA_LAT,
-        OLYMPIA_LON,
-    )
-    from restaurants.chain_blocklist import CHAIN_BLOCKLIST
-    from restaurants.network_utils import check_network
-except ImportError:  # pragma: no cover - fallback for running as script
-    from utils import setup_logging, normalize_hours, haversine_miles  # type: ignore
-    import loader  # type: ignore
-    from config import (  # type: ignore
-        GOOGLE_API_KEY,
-        TARGET_OLYMPIA_ZIPS,
-        OLYMPIA_LAT,
-        OLYMPIA_LON,
-    )
-    from chain_blocklist import CHAIN_BLOCKLIST  # type: ignore  # list of substrings that ID big chains
-    from network_utils import check_network  # type: ignore
+from restaurants.import_utils import optional_from, optional_import
+
+setup_logging, normalize_hours, haversine_miles = optional_from(
+    "utils", "setup_logging", "normalize_hours", "haversine_miles"
+)
+loader = optional_import("loader")
+(
+    GOOGLE_API_KEY,
+    TARGET_OLYMPIA_ZIPS,
+    OLYMPIA_LAT,
+    OLYMPIA_LON,
+) = optional_from(
+    "config",
+    "GOOGLE_API_KEY",
+    "TARGET_OLYMPIA_ZIPS",
+    "OLYMPIA_LAT",
+    "OLYMPIA_LON",
+)
+CHAIN_BLOCKLIST = optional_import("chain_blocklist").CHAIN_BLOCKLIST
+check_network = optional_from("network_utils", "check_network")[0]
 MAX_PAGES = 15   # safety cap; tweak per need
+
+# Google Places endpoints
+GOOGLE_TEXT_URL = "https://maps.googleapis.com/maps/api/place/textsearch/json"
+GOOGLE_DETAILS_URL = "https://maps.googleapis.com/maps/api/place/details/json"
 
 # -----------------------------------------------------------------------------
 # OPTIONAL DEPENDENCIES --------------------------------------------------------
@@ -67,6 +69,23 @@ OVERPASS_ENDPOINT = "https://overpass-api.de/api/interpreter"
 # 1) GOOGLE PLACES FETCHER -----------------------------------------------------
 # -----------------------------------------------------------------------------
 
+def _fetch_details(
+    session: requests.Session, params: dict, place_name: str
+) -> dict:
+    """Helper to fetch place details with retries."""
+    for attempt in range(3):
+        try:
+            resp = session.get(GOOGLE_DETAILS_URL, params=params, timeout=15)
+            resp.raise_for_status()
+            return resp.json().get("result", {})
+        except Exception as exc:  # pragma: no cover - network errors
+            if attempt == 2:
+                logging.error("Details failed for %s: %s", place_name, exc)
+            else:
+                time.sleep(1)
+    return {}
+
+
 def fetch_google_places(zip_codes: list[str]) -> None:
     """Populate ``smb_restaurants_data`` with Google Places SMB rows.
 
@@ -81,17 +100,14 @@ def fetch_google_places(zip_codes: list[str]) -> None:
         logging.info("Skipping Google Places fetch due to no network connectivity.")
         return
 
-    text_url = "https://maps.googleapis.com/maps/api/place/textsearch/json"
-    details_url = "https://maps.googleapis.com/maps/api/place/details/json"
-
-    with requests.Session() as session:
+    with requests.Session() as session, ThreadPoolExecutor(max_workers=8) as executor:
         for zip_code in zip_codes:
             logging.info("Fetching Google Places data for ZIP %s…", zip_code)
             params = {"key": GOOGLE_API_KEY, "query": f"restaurants in {zip_code} WA"}
             page = 1
             while True:
                 try:
-                    resp = session.get(text_url, params=params, timeout=15)
+                    resp = session.get(GOOGLE_TEXT_URL, params=params, timeout=15)
                     logging.info(
                         "%s page %s -> %s / %s",
                         zip_code,
@@ -132,25 +148,11 @@ def fetch_google_places(zip_codes: list[str]) -> None:
                     }
                     page_rows.append((basic_row, det_params, name))
 
-                def _fetch_details(d_params: dict, r_name: str) -> dict:
-                    for attempt in range(3):
-                        try:
-                            d_resp = session.get(details_url, params=d_params, timeout=15)
-                            d_resp.raise_for_status()
-                            return d_resp.json().get("result", {})
-                        except Exception as exc:
-                            if attempt == 2:
-                                logging.error("Details failed for %s: %s", r_name, exc)
-                            else:
-                                time.sleep(1)
-                    return {}
-
-                with ThreadPoolExecutor(max_workers=8) as executor:
-                    future_map = {
-                        executor.submit(_fetch_details, dp, nm): br
-                        for br, dp, nm in page_rows
-                    }
-                    for fut in as_completed(list(future_map)):
+                future_map = {
+                    executor.submit(_fetch_details, session, dp, nm): br
+                    for br, dp, nm in page_rows
+                }
+                for fut in as_completed(list(future_map)):
                         basic_row = future_map[fut]
                         details = fut.result()
 
