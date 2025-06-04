@@ -15,18 +15,18 @@ try:
     from restaurants.chain_blocklist import CHAIN_BLOCKLIST            # names to skip
     from restaurants.network_utils import check_network                # simple ping check
     from restaurants.utils import setup_logging
-except Exception:  # pragma: no cover - fallback when running as script
-    from config import GOOGLE_API_KEY
+except ImportError:  # pragma: no cover - fallback when running as script
+    from config import GOOGLE_API_KEY  # type: ignore
     try:
-        from chain_blocklist import CHAIN_BLOCKLIST
-    except Exception:
+        from chain_blocklist import CHAIN_BLOCKLIST  # type: ignore
+    except ImportError:
         CHAIN_BLOCKLIST = []
     try:
-        from network_utils import check_network
-    except Exception:
-        def check_network() -> bool:
+        from network_utils import check_network  # type: ignore
+    except ImportError:
+        def check_network() -> bool:  # type: ignore[misc]
             return True
-    from utils import setup_logging
+    from utils import setup_logging  # type: ignore
 
 SEARCH_URL  = "https://maps.googleapis.com/maps/api/place/textsearch/json"
 DETAILS_URL = "https://maps.googleapis.com/maps/api/place/details/json"
