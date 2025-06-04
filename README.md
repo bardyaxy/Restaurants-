@@ -38,6 +38,21 @@ By default `refresh_restaurants.py` iterates over the `TARGET_OLYMPIA_ZIPS`
 list in `config.py`.  You can pass `--zips 98501,98502` or enter a list when
 prompted to restrict the fetch to specific ZIP codes.
 
+## Optional GUI
+
+A small Tkinter interface is available for users who prefer not to run
+commands in the terminal. Launch it with:
+
+```bash
+python -m restaurants.gui
+```
+
+The window exposes buttons for the two main workflows: refreshing restaurant
+data and fetching Toast leads.  A field lets you supply comma‑separated ZIP
+codes for the refresh command. When running, an indeterminate progress bar
+spins and the collected row count is shown once complete. Any error raised by
+the process is displayed in a pop‑up dialog.
+
 ## Toast lead enrichment
 
 1. Run `toast_leads.py` to gather additional restaurant leads. Ensure the `GOOGLE_API_KEY` environment variable is set before running.
