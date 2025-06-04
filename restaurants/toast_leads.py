@@ -14,7 +14,7 @@ try:
     from restaurants.config import GOOGLE_API_KEY
     from restaurants.chain_blocklist import CHAIN_BLOCKLIST            # names to skip
     from restaurants.network_utils import check_network                # simple ping check
-    from restaurants.utils import setup_logging
+    from restaurants.utils import setup_logging, is_valid_zip
 except ImportError:  # pragma: no cover - fallback when running as script
     from config import GOOGLE_API_KEY  # type: ignore
     try:
@@ -26,7 +26,7 @@ except ImportError:  # pragma: no cover - fallback when running as script
     except ImportError:
         def check_network() -> bool:  # type: ignore[misc]
             return True
-    from utils import setup_logging  # type: ignore
+    from utils import setup_logging, is_valid_zip  # type: ignore
 
 SEARCH_URL  = "https://maps.googleapis.com/maps/api/place/textsearch/json"
 DETAILS_URL = "https://maps.googleapis.com/maps/api/place/details/json"
@@ -73,7 +73,16 @@ ZIP_FILE = "toast_zips.txt"
 def load_zip_codes(path: str = ZIP_FILE) -> list[str]:
     try:
         with open(path, "r", encoding="utf-8") as f:
-            return [line.strip() for line in f if line.strip()]
+            codes: list[str] = []
+            for line in f:
+                code = line.strip()
+                if not code:
+                    continue
+                if is_valid_zip(code):
+                    codes.append(code)
+                else:
+                    logging.warning("Invalid ZIP code ignored: %s", code)
+            return codes
     except FileNotFoundError:
         return []
 
