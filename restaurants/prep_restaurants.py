@@ -13,8 +13,8 @@ try:
         haversine_miles_series,
         setup_logging,
     )
-except Exception:  # pragma: no cover - fallback for running as script
-    from utils import haversine_miles, haversine_miles_series, setup_logging
+except ImportError:  # pragma: no cover - fallback for running as script
+    from utils import haversine_miles, haversine_miles_series, setup_logging  # type: ignore
 
 
 BX_LAT, BX_LON = 47.6154255, -122.2035954  # Bellevue Square Mall

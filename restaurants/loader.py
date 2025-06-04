@@ -15,8 +15,8 @@ from datetime import datetime, timezone
 
 try:
     from restaurants.utils import setup_logging
-except Exception:  # pragma: no cover - fallback for running as script
-    from utils import setup_logging
+except ImportError:  # pragma: no cover - fallback for running as script
+    from utils import setup_logging  # type: ignore
 
 DB_PATH = pathlib.Path(__file__).with_name("dela.sqlite")
 

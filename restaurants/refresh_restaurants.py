@@ -20,17 +20,17 @@ try:
     )
     from restaurants.chain_blocklist import CHAIN_BLOCKLIST
     from restaurants.network_utils import check_network
-except Exception:  # pragma: no cover - fallback for running as script
-    from utils import setup_logging, normalize_hours, haversine_miles
-    import loader
-    from config import (
+except ImportError:  # pragma: no cover - fallback for running as script
+    from utils import setup_logging, normalize_hours, haversine_miles  # type: ignore
+    import loader  # type: ignore
+    from config import (  # type: ignore
         GOOGLE_API_KEY,
         TARGET_OLYMPIA_ZIPS,
         OLYMPIA_LAT,
         OLYMPIA_LON,
     )
-    from chain_blocklist import CHAIN_BLOCKLIST  # list of substrings that ID big chains
-    from network_utils import check_network
+    from chain_blocklist import CHAIN_BLOCKLIST  # type: ignore  # list of substrings that ID big chains
+    from network_utils import check_network  # type: ignore
 MAX_PAGES = 15   # safety cap; tweak per need
 
 # -----------------------------------------------------------------------------
