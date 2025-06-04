@@ -38,7 +38,7 @@ def load_seen_ids(path: str = "seen_place_ids.json") -> set[str]:
     try:
         with open(path, "r", encoding="utf-8") as f:
             return set(json.load(f))
-    except Exception:
+    except (OSError, json.JSONDecodeError):
         return set()
 
 def save_seen_ids(ids: set[str], path: str = "seen_place_ids.json") -> None:
