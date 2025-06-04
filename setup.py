@@ -4,7 +4,7 @@ setup(
     name="olympia-restaurants",
     version="0.1.0",
     description="Aggregator for Olympia, WA restaurant data",
-    packages=find_packages(),
+    packages=find_packages(exclude=["tests", "tests.*"]),
     python_requires=">=3.9",
     install_requires=[
         "requests",
