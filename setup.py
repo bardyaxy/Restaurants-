@@ -21,6 +21,7 @@ setup(
         "console_scripts": [
             "refresh-restaurants=restaurants.refresh_restaurants:main",
             "toast-leads=restaurants.toast_leads:main",
+            "restaurants-gui=restaurants.gui:main",
         ]
     },
 )
