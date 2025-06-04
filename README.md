@@ -40,7 +40,7 @@ prompted to restrict the fetch to specific ZIP codes.
 
 ## Optional GUI
 
-A minimal Tkinter interface is available for users who prefer not to run
+A small Tkinter interface is available for users who prefer not to run
 commands in the terminal. Launch it with:
 
 ```bash
@@ -48,7 +48,10 @@ python -m restaurants.gui
 ```
 
 The window exposes buttons for the two main workflows: refreshing restaurant
-data and fetching Toast leads.
+data and fetching Toast leads.  A field lets you supply comma‑separated ZIP
+codes for the refresh command. When running, an indeterminate progress bar
+spins and the collected row count is shown once complete. Any error raised by
+the process is displayed in a pop‑up dialog.
 
 ## Toast lead enrichment
 
