@@ -22,6 +22,8 @@ def test_enrich_restaurant_success(monkeypatch):
     def dummy_get(self, url, params=None, headers=None, timeout=None):
         if url == gye.GOOGLE_SEARCH_URL:
             return DummyResp({"results": [{"name": "Foo", "place_id": "p1", "geometry": {"location": {"lat": 1.0, "lng": 2.0}}}]})
+        elif url == gye.GOOGLE_DETAILS_URL:
+            return DummyResp({"result": {}})
         elif url == gye.YELP_SEARCH_URL:
             return DummyResp({"businesses": [{"id": "y1", "name": "Foo"}]})
         elif url == gye.YELP_DETAILS_URL.format(id="y1"):
@@ -46,3 +48,38 @@ def test_enrich_restaurant_no_network(monkeypatch):
     monkeypatch.setattr(gye, "check_network", lambda: False)
     with pytest.raises(SystemExit):
         gye.enrich_restaurant("Foo", "Olympia WA")
+
+
+def test_enrich_restaurant_phone_fallback(monkeypatch):
+    gye = importlib.import_module("restaurants.google_yelp_enrich")
+
+    class DummyResp:
+        def __init__(self, data):
+            self._data = data
+
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return self._data
+
+    def dummy_get(self, url, params=None, headers=None, timeout=None):
+        if url == gye.GOOGLE_SEARCH_URL:
+            return DummyResp({"results": [{"name": "Foo", "place_id": "p1", "geometry": {"location": {"lat": 1.0, "lng": 2.0}}}]})
+        elif url == gye.GOOGLE_DETAILS_URL:
+            return DummyResp({"result": {"formatted_phone_number": "+1-555-111-2222"}})
+        elif url == gye.YELP_SEARCH_URL:
+            return DummyResp({"businesses": []})
+        elif url == gye.YELP_PHONE_SEARCH_URL:
+            return DummyResp({"businesses": [{"id": "y1"}]})
+        elif url == gye.YELP_DETAILS_URL.format(id="y1"):
+            return DummyResp({"id": "y1"})
+        elif url == gye.YELP_REVIEWS_URL.format(id="y1"):
+            return DummyResp({"reviews": []})
+        raise AssertionError(f"unexpected url {url}")
+
+    monkeypatch.setattr(gye.requests.sessions.Session, "get", dummy_get)
+    monkeypatch.setattr(gye, "check_network", lambda: True)
+
+    res = gye.enrich_restaurant("Foo", "Olympia WA")
+    assert res["yelp"]["business"]["id"] == "y1"
