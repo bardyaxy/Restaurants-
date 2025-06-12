@@ -15,6 +15,7 @@ from restaurants import loader
 from restaurants.config import GOOGLE_API_KEY, load_zip_codes
 from restaurants.settings import FETCHERS
 from restaurants import google_yelp_enrich
+from restaurants.social_links import extract_social_links
 
 # Aggregate store for fetched restaurant rows
 smb_restaurants_data: list[dict] = []
@@ -56,11 +57,19 @@ def main(argv: list[str] | None = None) -> None:
         fetcher = fetcher_cls()
         smb_restaurants_data.extend(fetcher.fetch(zip_list))
 
+    for row in smb_restaurants_data:
+        if row.get("Website"):
+            links = extract_social_links(row["Website"])
+            row.update(links)
+
     if not smb_restaurants_data:
         logging.info("No SMB restaurants found – nothing to write.")
         return
 
     df = pd.DataFrame(smb_restaurants_data)
+    for col in ["facebook_url", "instagram_url"]:
+        if col not in df.columns:
+            df[col] = None
     if args.strict_zips and "Zip Code" in df.columns:
         df = df[df["Zip Code"].astype(str).isin(zip_list)]
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")

@@ -15,6 +15,7 @@ This project collects restaurant information for ZIP codes around Olympia, Washi
 - **Government CSV importer** *(disabled)* for Washington health and Thurston County license data.
 - **OpenStreetMap fetcher** *(disabled)* for additional restaurant listings.
 - **Deduplication routine** that merges results from all sources while prioritizing Google Places SMB entries.
+- **Automatic social link extraction** scrapes each website for Facebook and Instagram URLs.
 - **Network check** using a lightweight GET request to gracefully skip online
   fetchers when offline. Some corporate networks block HEAD requests, so the
   check avoids them by default.
@@ -53,6 +54,9 @@ with Yelp data when `YELP_API_KEY` is set. Pass `--no-yelp` to skip this step.
 Use `--strict-zips` to drop any fetched rows whose `Zip Code` isn't in the
 provided list. This is useful when Google returns nearby results outside the
 desired ZIP codes.
+The refresh step now also scrapes each restaurant's website to detect Facebook
+and Instagram links, adding `facebook_url` and `instagram_url` columns to the
+output CSV.
 
 ## Optional GUI
 

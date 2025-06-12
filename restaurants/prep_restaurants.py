@@ -94,6 +94,8 @@ def main(argv: list[str] | None = None) -> None:
         "City",
         "State",
         "Zip Code",
+        # Add "facebook_url" and "instagram_url" here if you don't want them
+        # in the cleaned output.
     ]
     df = df.drop(columns=[c for c in drop_cols if c in df.columns])
 
