@@ -80,14 +80,20 @@ comma‑separated string, with the first alias stored separately as
 
 ## Tests
 
-Ensure the `restaurants` package is importable before running the tests. The
-simplest approach is to install the project in editable mode:
+Ensure the `restaurants` package is importable before running the tests.
+All runtime dependencies live in `requirements.txt` while the testing tools
+are listed in `requirements-dev.txt`:
 
 ```bash
 pip install -e .
 pip install -r requirements-dev.txt
 pytest
 ```
+
+The dev file includes `pytest`, `mypy` and type stubs. It also pulls in the
+packages from `requirements.txt` so a single install command prepares the
+environment. For convenience you can run `./setup_tests.sh` to perform these
+steps automatically.
 
 Alternatively you can adjust `PYTHONPATH` so the `restaurants` imports in the
 tests resolve.
