@@ -1,12 +1,12 @@
-requests
-python-dotenv
-pandas
-overpy
-geocoder
-rapidfuzz
+requests==2.32.4
+python-dotenv==1.1.0
+pandas==2.3.0
+overpy==0.7
+geocoder==1.38.1
+rapidfuzz==3.13.0
 # optional: used for GeoJSON export
-shapely
+shapely==2.1.1
 
-pyyaml
-XlsxWriter
-tqdm
+pyyaml==6.0.2
+XlsxWriter==3.2.3
+tqdm==4.67.1
