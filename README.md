@@ -110,3 +110,27 @@ Install the development requirements to enable `mypy` type checking. The file
 pip install -r requirements-dev.txt
 mypy restaurants
 ```
+
+## GeoJSON export
+
+Run the helper script after cleaning the data to create `restaurants.geojson` in
+`backend/static`:
+
+```bash
+python -m restaurants.export_geojson
+```
+
+## React development server
+
+The React frontend lives in `frontend/`. Install dependencies and start the dev
+server with:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+The map fetches `/static/restaurants.geojson` from the backend and displays the
+locations using Mapbox GL JS. Set `mapboxgl.accessToken` in `src/App.jsx` to your
+Mapbox token before running.
