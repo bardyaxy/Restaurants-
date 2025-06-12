@@ -1,6 +1,5 @@
 __pycache__/
 *.pyc
-.env
 *.sqlite
 error.log
 # Ignore generated CSV outputs
