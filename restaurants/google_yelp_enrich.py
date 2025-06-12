@@ -59,9 +59,9 @@ def search_yelp_business(
     headers: dict[str, str],
 ) -> dict[str, Any]:
     """Return the best Yelp business for ``name`` using coords or location."""
-    params = {"term": name, "limit": 5}
+    params: dict[str, str | int | float | None] = {"term": name, "limit": 5}
     if lat is not None and lon is not None:
-        params.update({"latitude": lat, "longitude": lon})
+        params.update({"latitude": str(lat), "longitude": str(lon)})
     else:
         params["location"] = location
 
