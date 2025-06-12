@@ -22,9 +22,10 @@ This project collects restaurant information for ZIP codes around Olympia, Washi
    ```bash
    pip install -e .
    ```
-2. Copy `.env.template` to `.env` and fill in your `GOOGLE_API_KEY`. Other keys
-   like `YELP_API_KEY` are optional but required for Yelp utilities. Configuration
-   is loaded via `config.py` which also exposes `DEFAULT_ZIP` (set to `98501`).
+2. Copy `.env.template` to `.env` and add your `GOOGLE_API_KEY`. Other keys
+   like `YELP_API_KEY` are optional but required for Yelp utilities. The `.env`
+   file is listed in `.gitignore` and should remain untracked. Configuration is
+   loaded via `config.py` which also exposes `DEFAULT_ZIP` (set to `98501`).
 3. Run the refresh command:
    ```bash
    refresh-restaurants
