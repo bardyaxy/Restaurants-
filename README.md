@@ -17,10 +17,11 @@ This project collects restaurant information for ZIP codes around Olympia, Washi
 
 ## Setup
 
-1. Install the project in editable mode (the `requests` dependency is
-   required for network operations):
+1. Install the project in editable mode. The `requirements.txt` file pins
+   specific versions of each dependency for reproducible installs:
    ```bash
    pip install -e .
+   pip install -r requirements.txt
    ```
 2. Copy `.env.template` to `.env` and add your `GOOGLE_API_KEY` and
    `MAPBOX_TOKEN`. Other keys like `YELP_API_KEY` are optional but required for
