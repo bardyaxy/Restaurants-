@@ -134,3 +134,13 @@ npm run dev
 The map fetches `/static/restaurants.geojson` from the backend and displays the
 locations using Mapbox GL JS. Set `mapboxgl.accessToken` in `src/App.jsx` to your
 Mapbox token before running.
+
+## Makefile
+
+A Makefile streamlines the workflow of fetching data and launching the frontend. Run:
+
+```bash
+make all
+```
+
+The command refreshes restaurant data, exports `restaurants.geojson`, and starts the React development server.
