@@ -98,8 +98,8 @@ pytest
 
 The dev file includes `pytest`, `mypy` and type stubs. It also pulls in the
 packages from `requirements.txt` so a single install command prepares the
-environment. For convenience you can run `./setup_tests.sh` to perform these
-steps automatically.
+environment. For convenience you can run `./setup_tests.sh` which installs the
+requirements and runs the test suite automatically.
 
 Alternatively you can adjust `PYTHONPATH` so the `restaurants` imports in the
 tests resolve.
