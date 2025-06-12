@@ -1,6 +1,7 @@
 import importlib
 import pandas as pd
 import glob
+import os
 
 
 def test_prep_restaurants_functions(tmp_path, monkeypatch):
@@ -29,11 +30,18 @@ def test_prep_restaurants_functions(tmp_path, monkeypatch):
     monkeypatch.setattr(pd.DataFrame, "to_csv", dummy_to_csv)
     monkeypatch.setattr(pd.DataFrame, "to_excel", dummy_to_excel)
 
+    def dummy_replace(src, dst):
+        captured.setdefault("replace", []).append((src, dst))
+
+    monkeypatch.setattr(os, "replace", dummy_replace)
+
     pr = importlib.import_module("restaurants.prep_restaurants")
     pr.main()
 
-    assert captured.get("csv") == "restaurants_prepped.csv"
-    assert captured.get("xlsx") == "restaurants_prepped.xlsx"
+    assert captured.get("csv") == "restaurants_prepped.tmp.csv"
+    assert captured.get("xlsx") == "restaurants_prepped.tmp.xlsx"
+    assert ("restaurants_prepped.tmp.csv", "restaurants_prepped.csv") in captured.get("replace", [])
+    assert ("restaurants_prepped.tmp.xlsx", "restaurants_prepped.xlsx") in captured.get("replace", [])
     assert pr.split_hours("Mon: 9-5; Tue: 10-6") == {"Mon": "9-5", "Tue": "10-6"}
     assert pr._bx_distance(pd.Series({"lat": pr.BX_LAT, "lon": pr.BX_LON})) == 0
 
