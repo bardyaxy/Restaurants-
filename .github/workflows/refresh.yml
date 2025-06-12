@@ -41,7 +41,3 @@ jobs:
             git push
             echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
-      - name: Trigger frontend deployment
-        if: steps.commit.outputs.changed == 'true' && env.FRONTEND_DEPLOY_HOOK_URL != ''
-        run: |
-          curl -X POST "$FRONTEND_DEPLOY_HOOK_URL"

@@ -3,9 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "scripts": {
-    "start": "concurrently \"python -m restaurants.refresh_restaurants\" \"npm --prefix frontend run dev\""
+    "start": "python -m restaurants.refresh_restaurants"
   },
-  "devDependencies": {
-    "concurrently": "^9.1.2"
-  }
+  "devDependencies": {}
 }
