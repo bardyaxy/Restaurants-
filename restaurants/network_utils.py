@@ -10,11 +10,11 @@ def check_network(
 ) -> bool:
     """Return True if network is reachable.
 
-    A lightweight ``GET`` request is used by default as some networks block ``HEAD``
-    requests. You can override ``method`` to ``"HEAD"`` if desired or specify a
-    custom URL.
+    A lightweight ``GET`` request is used by default since some
+    networks block ``HEAD`` requests. Override ``method`` to
+    ``"HEAD"`` if desired or specify a custom URL.
 
-    The URL, method, and timeout may also be overridden using the environment
+    The URL, method, and timeout may also be overridden with environment
     variables ``NETWORK_TEST_URL``, ``NETWORK_TEST_METHOD`` and
     ``NETWORK_TEST_TIMEOUT``. This makes the connectivity check configurable on
     restricted networks.
@@ -26,7 +26,9 @@ def check_network(
         try:
             timeout = int(timeout_env)
         except ValueError:
-            logging.error("Invalid NETWORK_TEST_TIMEOUT value: %s", timeout_env)
+            logging.error(
+                "Invalid NETWORK_TEST_TIMEOUT value: %s", timeout_env
+            )
 
     try:
         if method.upper() == "HEAD":
@@ -42,4 +44,3 @@ def check_network(
         return False
     except requests.RequestException:
         return False
-
