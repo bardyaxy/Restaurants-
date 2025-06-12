@@ -99,7 +99,7 @@ class GooglePlacesFetcher(BaseFetcher):
                             "place_id": basic_row["Place ID"],
                             "fields": (
                                 "formatted_phone_number,international_phone_number,website,opening_hours,"
-                                "price_level,types,address_components,photo"
+                                "price_level,types,address_components,photo,geometry"
                             ),
                         }
                         page_rows.append((basic_row, det_params, name))
@@ -111,6 +111,11 @@ class GooglePlacesFetcher(BaseFetcher):
                     for fut in as_completed(list(future_map)):
                         basic_row = future_map[fut]
                         details = fut.result()
+
+                        location = details.get("geometry", {}).get("location", {})
+                        if location.get("lat") is not None and location.get("lng") is not None:
+                            basic_row["lat"] = location["lat"]
+                            basic_row["lon"] = location["lng"]
 
                         opening_hours_raw = details.get("opening_hours", {}).get(
                             "weekday_text", []
