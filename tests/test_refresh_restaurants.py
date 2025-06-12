@@ -301,6 +301,42 @@ def test_strict_zips_filters_rows(monkeypatch):
     assert list(df["Zip Code"]) == ["98501", "98002"]
 
 
+def test_refresh_main_social_links(monkeypatch):
+    class DummyFetcher:
+        def fetch(self, zip_codes, **opts):
+            return [{"Name": "A", "Place ID": "p1", "Website": "http://x"}]
+
+    monkeypatch.setattr(rr, "FETCHERS", [(DummyFetcher, True)])
+    monkeypatch.setattr(rr, "GOOGLE_API_KEY", "DUMMY")
+    monkeypatch.setattr(rr.loader, "load", lambda _p: None)
+    monkeypatch.setattr(rr.pd, "read_sql_query", lambda q, c: pd.DataFrame())
+    monkeypatch.setattr(rr.google_yelp_enrich, "yelp_enrich_all", lambda: None)
+
+    class DummyConn:
+        def close(self):
+            pass
+
+    monkeypatch.setattr(rr.sqlite3, "connect", lambda _p: DummyConn())
+    monkeypatch.setattr(rr, "extract_social_links", lambda url: {
+        "facebook_url": "fb",
+        "instagram_url": "ig",
+    })
+
+    saved = []
+
+    def dummy_to_csv(self, path, index=False):
+        saved.append(self.copy())
+
+    monkeypatch.setattr(pd.DataFrame, "to_csv", dummy_to_csv)
+
+    rr.main(["--zips", "98501", "--no-yelp"])
+
+    assert saved
+    df = saved[0]
+    assert df.loc[0, "facebook_url"] == "fb"
+    assert df.loc[0, "instagram_url"] == "ig"
+
+
 def test_refresh_main_runs_yelp(monkeypatch):
     class DummyFetcher:
         def fetch(self, zip_codes, **opts):
