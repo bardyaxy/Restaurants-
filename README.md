@@ -48,8 +48,9 @@ By default `refresh_restaurants.py` loads ZIP codes from `toast_zips.txt` using
 `restaurants.config.load_zip_codes`. The file includes many ZIP codes across the
 Olympia area. You can pass `--zips` with any additional ZIP codes (e.g.
 `--zips 98502`). The script displays a progress bar via `tqdm` as it fetches
-Google results.
-Pass `--strict-zips` to drop any fetched rows whose `Zip Code` isn't in the
+Google results. After loading the results it automatically enriches each row
+with Yelp data when `YELP_API_KEY` is set. Pass `--no-yelp` to skip this step.
+Use `--strict-zips` to drop any fetched rows whose `Zip Code` isn't in the
 provided list. This is useful when Google returns nearby results outside the
 desired ZIP codes.
 
@@ -74,8 +75,10 @@ data and fetching Toast leads.
 
 ## Yelp enrichment
 
-Run `google_yelp_enrich.py` to supplement Google Places rows with Yelp ratings and
-categories. The script searches Yelp by the restaurant name and city and scans
+`refresh-restaurants` now enriches Google Places rows with Yelp ratings and
+categories automatically when `YELP_API_KEY` is set. You can still run
+`google_yelp_enrich.py` manually if desired. The script searches Yelp by the
+restaurant name and city and scans
 up to five candidates. `rapidfuzz.fuzz.token_set_ratio` picks the best match and
 only applies it when the score meets the `YELP_MATCH_THRESHOLD` (60 by default).
 When that fails the utility fetches the place's phone number from Google and
@@ -84,8 +87,8 @@ marked as `FAIL`. The summary section now includes rating, price tier, phone and
 closed status in addition to the list of cuisines.
 
 Ensure the `dela.sqlite` database exists (created by `refresh_restaurants.py`)
-and that `YELP_API_KEY` is set before running. If either is missing the script
-exits with a message explaining what is required.
+and that `YELP_API_KEY` is set before running. Without the key the refresh
+command will skip enrichment unless you pass `--no-yelp`.
 
 Set `YELP_DEBUG=1` to print debug information about failed lookups, including
 all Yelp candidate names returned for each query.

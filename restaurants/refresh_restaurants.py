@@ -14,6 +14,7 @@ from restaurants.utils import setup_logging
 from restaurants import loader
 from restaurants.config import GOOGLE_API_KEY, load_zip_codes
 from restaurants.settings import FETCHERS
+from restaurants import google_yelp_enrich
 
 # Aggregate store for fetched restaurant rows
 smb_restaurants_data: list[dict] = []
@@ -30,6 +31,11 @@ def main(argv: list[str] | None = None) -> None:
         "--strict-zips",
         action="store_true",
         help="Only keep rows whose Zip Code matches the provided list",
+    )
+    parser.add_argument(
+        "--no-yelp",
+        action="store_true",
+        help="Skip Yelp enrichment step",
     )
     args = parser.parse_args(argv)
 
@@ -64,6 +70,9 @@ def main(argv: list[str] | None = None) -> None:
 
     csv_path = pathlib.Path(out_csv)
     loader.load(csv_path)
+
+    if not args.no_yelp:
+        google_yelp_enrich.yelp_enrich_all()
 
     conn = sqlite3.connect(loader.DB_PATH)
     df_db = pd.read_sql_query("SELECT * FROM places", conn)
