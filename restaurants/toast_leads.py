@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import requests
+from tqdm.auto import tqdm
 
 # ---------------------------------------------------------------------------
 # 0.  Setup
@@ -104,7 +105,8 @@ def main() -> None:
     with requests.Session() as session:
         session.trust_env = False           # ignore any HTTP(S)_PROXY env vars
 
-        for zip_code in zip_list:
+        for zip_code in tqdm(zip_list, desc="ZIP codes"):
+            zip_start_count = len(new_rows)
             params = {
                 "key": GOOGLE_API_KEY,
                 "query": f"restaurants in {zip_code} WA"
@@ -170,6 +172,9 @@ def main() -> None:
                 time.sleep(2)                       # Google recommends ~2 s wait
                 params = {"key": GOOGLE_API_KEY, "pagetoken": next_tok}
                 page += 1
+
+            zip_leads = len(new_rows) - zip_start_count
+            print(f"{zip_code}: {zip_leads} new leads", flush=True)
 
     # -----------------------------------------------------------------------
     # 3.  Write results
