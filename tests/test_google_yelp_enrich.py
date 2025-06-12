@@ -21,7 +21,17 @@ def test_enrich_restaurant_success(monkeypatch):
 
     def dummy_get(self, url, params=None, headers=None, timeout=None):
         if url == gye.GOOGLE_SEARCH_URL:
-            return DummyResp({"results": [{"name": "Foo", "place_id": "p1", "geometry": {"location": {"lat": 1.0, "lng": 2.0}}}]})
+            return DummyResp(
+                {
+                    "results": [
+                        {
+                            "name": "Foo",
+                            "place_id": "p1",
+                            "geometry": {"location": {"lat": 1.0, "lng": 2.0}},
+                        }
+                    ]
+                }
+            )
         elif url == gye.GOOGLE_DETAILS_URL:
             return DummyResp({"result": {}})
         elif url == gye.YELP_SEARCH_URL:
@@ -65,7 +75,17 @@ def test_enrich_restaurant_phone_fallback(monkeypatch):
 
     def dummy_get(self, url, params=None, headers=None, timeout=None):
         if url == gye.GOOGLE_SEARCH_URL:
-            return DummyResp({"results": [{"name": "Foo", "place_id": "p1", "geometry": {"location": {"lat": 1.0, "lng": 2.0}}}]})
+            return DummyResp(
+                {
+                    "results": [
+                        {
+                            "name": "Foo",
+                            "place_id": "p1",
+                            "geometry": {"location": {"lat": 1.0, "lng": 2.0}},
+                        }
+                    ]
+                }
+            )
         elif url == gye.GOOGLE_DETAILS_URL:
             return DummyResp({"result": {"formatted_phone_number": "+1-555-111-2222"}})
         elif url == gye.YELP_SEARCH_URL:

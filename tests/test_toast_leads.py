@@ -78,12 +78,14 @@ def test_toast_leads_chain_blocklist(monkeypatch, tmp_path):
 
     def dummy_get(self, url, params=None, timeout=None):
         if "textsearch" in url:
-            return DummyResp({
-                "results": [
-                    {"name": "IHOP West", "place_id": "p1"},
-                    {"name": "Local Spot", "place_id": "p2"},
-                ]
-            })
+            return DummyResp(
+                {
+                    "results": [
+                        {"name": "IHOP West", "place_id": "p1"},
+                        {"name": "Local Spot", "place_id": "p2"},
+                    ]
+                }
+            )
         elif "details" in url:
             if params["place_id"] == "p1":
                 return DummyResp({"result": {"name": "IHOP West"}})
@@ -132,4 +134,3 @@ def test_toast_leads_chain_blocklist(monkeypatch, tmp_path):
 
     assert len(captured_rows) == 1
     assert captured_rows[0]["Business Name"] == "Local Spot"
-

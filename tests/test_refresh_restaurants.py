@@ -26,28 +26,30 @@ def test_google_details_use_threadpool(monkeypatch):
 
     def dummy_get(self, url, params=None, timeout=None):
         if "textsearch" in url:
-            return DummyResp({
-                "results": [
-                    {
-                        "name": "A",
-                        "formatted_address": "addr1",
-                        "place_id": "p1",
-                        "rating": 4.0,
-                        "user_ratings_total": 5,
-                        "business_status": "OP",
-                        "geometry": {"location": {"lat": 1, "lng": 2}},
-                    },
-                    {
-                        "name": "B",
-                        "formatted_address": "addr2",
-                        "place_id": "p2",
-                        "rating": 3.5,
-                        "user_ratings_total": 2,
-                        "business_status": "OP",
-                        "geometry": {"location": {"lat": 3, "lng": 4}},
-                    },
-                ]
-            })
+            return DummyResp(
+                {
+                    "results": [
+                        {
+                            "name": "A",
+                            "formatted_address": "addr1",
+                            "place_id": "p1",
+                            "rating": 4.0,
+                            "user_ratings_total": 5,
+                            "business_status": "OP",
+                            "geometry": {"location": {"lat": 1, "lng": 2}},
+                        },
+                        {
+                            "name": "B",
+                            "formatted_address": "addr2",
+                            "place_id": "p2",
+                            "rating": 3.5,
+                            "user_ratings_total": 2,
+                            "business_status": "OP",
+                            "geometry": {"location": {"lat": 3, "lng": 4}},
+                        },
+                    ]
+                }
+            )
         elif "details" in url:
             detail_calls.append(params["place_id"])
             return DummyResp({"result": {}})
@@ -61,6 +63,7 @@ def test_google_details_use_threadpool(monkeypatch):
     class DummyFuture:
         def __init__(self, res):
             self._res = res
+
         def result(self):
             return self._res
 
@@ -68,13 +71,16 @@ def test_google_details_use_threadpool(monkeypatch):
         def __init__(self, max_workers=None):
             executors.append(self)
             self.submitted = []
+
         def submit(self, fn, *args, **kw):
             res = fn(*args, **kw)
             fut = DummyFuture(res)
             self.submitted.append((fn, args, kw))
             return fut
+
         def __enter__(self):
             return self
+
         def __exit__(self, exc_type, exc, tb):
             pass
 
@@ -121,24 +127,30 @@ def test_fetch_google_places_details_failure(monkeypatch):
         def __init__(self, data):
             self._data = data
             self.status_code = 200
+
         def raise_for_status(self):
             pass
+
         def json(self):
             return self._data
 
     def dummy_get(self, url, params=None, timeout=None):
         if "textsearch" in url:
-            return DummyResp({
-                "results": [{
-                    "name": "A",
-                    "formatted_address": "addr1",
-                    "place_id": "p1",
-                    "rating": 4.0,
-                    "user_ratings_total": 1,
-                    "business_status": "OP",
-                    "geometry": {"location": {"lat": 1, "lng": 2}},
-                }]
-            })
+            return DummyResp(
+                {
+                    "results": [
+                        {
+                            "name": "A",
+                            "formatted_address": "addr1",
+                            "place_id": "p1",
+                            "rating": 4.0,
+                            "user_ratings_total": 1,
+                            "business_status": "OP",
+                            "geometry": {"location": {"lat": 1, "lng": 2}},
+                        }
+                    ]
+                }
+            )
         elif "details" in url:
             raise RuntimeError("boom")
         raise AssertionError("unexpected url " + url)
@@ -149,16 +161,20 @@ def test_fetch_google_places_details_failure(monkeypatch):
     class DummyFuture:
         def __init__(self, res):
             self._res = res
+
         def result(self):
             return self._res
 
     class DummyExecutor:
         def __init__(self, max_workers=None):
             pass
+
         def submit(self, fn, *a, **kw):
             return DummyFuture(fn(*a, **kw))
+
         def __enter__(self):
             return self
+
         def __exit__(self, exc_type, exc, tb):
             pass
 
@@ -185,28 +201,30 @@ def test_fetch_google_places_chain_blocklist(monkeypatch):
 
     def dummy_get(self, url, params=None, timeout=None):
         if "textsearch" in url:
-            return DummyResp({
-                "results": [
-                    {
-                        "name": "Denny's",
-                        "formatted_address": "addr1",
-                        "place_id": "p1",
-                        "rating": 3.0,
-                        "user_ratings_total": 1,
-                        "business_status": "OP",
-                        "geometry": {"location": {"lat": 1, "lng": 2}},
-                    },
-                    {
-                        "name": "Local Cafe",
-                        "formatted_address": "addr2",
-                        "place_id": "p2",
-                        "rating": 4.5,
-                        "user_ratings_total": 7,
-                        "business_status": "OP",
-                        "geometry": {"location": {"lat": 3, "lng": 4}},
-                    },
-                ]
-            })
+            return DummyResp(
+                {
+                    "results": [
+                        {
+                            "name": "Denny's",
+                            "formatted_address": "addr1",
+                            "place_id": "p1",
+                            "rating": 3.0,
+                            "user_ratings_total": 1,
+                            "business_status": "OP",
+                            "geometry": {"location": {"lat": 1, "lng": 2}},
+                        },
+                        {
+                            "name": "Local Cafe",
+                            "formatted_address": "addr2",
+                            "place_id": "p2",
+                            "rating": 4.5,
+                            "user_ratings_total": 7,
+                            "business_status": "OP",
+                            "geometry": {"location": {"lat": 3, "lng": 4}},
+                        },
+                    ]
+                }
+            )
         elif "details" in url:
             return DummyResp({"result": {}})
         raise AssertionError("unexpected url " + url)
@@ -280,4 +298,3 @@ def test_strict_zips_filters_rows(monkeypatch):
     assert saved
     df = saved[0]
     assert list(df["Zip Code"]) == ["98501", "98002"]
-
