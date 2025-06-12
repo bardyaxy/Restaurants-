@@ -8,6 +8,7 @@ import sqlite3
 import logging
 import argparse
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from tqdm.auto import tqdm
 
 try:
     from restaurants.utils import setup_logging, normalize_hours, haversine_miles
@@ -104,7 +105,7 @@ def fetch_google_places(zip_codes: list[str]) -> None:
         raise SystemExit(1)
 
     with requests.Session() as session, ThreadPoolExecutor(max_workers=8) as executor:
-        for zip_code in zip_codes:
+        for zip_code in tqdm(zip_codes, desc="ZIP codes"):
             logging.info("Fetching Google Places data for ZIP %s…", zip_code)
             params = {"key": GOOGLE_API_KEY, "query": f"restaurants in {zip_code} WA"}
             page = 1
@@ -277,16 +278,7 @@ def main(argv: list[str] | None = None) -> None:
     if args.zips:
         zip_list = [z.strip() for z in args.zips.split(",") if z.strip()]
     else:
-        try:
-            input_str = input(
-                "Enter comma-separated ZIP codes (blank for default list): "
-            ).strip()
-        except EOFError:
-            input_str = ""
-        if input_str:
-            zip_list = [z.strip() for z in input_str.split(",") if z.strip()]
-        else:
-            zip_list = [str(z) for z in TARGET_OLYMPIA_ZIPS]
+        zip_list = [str(z) for z in TARGET_OLYMPIA_ZIPS]
 
     fetch_google_places(zip_list)
 

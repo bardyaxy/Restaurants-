@@ -3,3 +3,4 @@ pytest
 mypy
 types-requests
 pandas-stubs
+tqdm
