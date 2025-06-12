@@ -9,7 +9,11 @@ from __future__ import annotations
 import tkinter as tk
 from tkinter import messagebox
 
-from . import refresh_restaurants, toast_leads
+try:
+    from . import refresh_restaurants, toast_leads
+except ImportError:  # pragma: no cover - fallback for running as script
+    import refresh_restaurants  # type: ignore
+    import toast_leads  # type: ignore
 
 
 def run_refresh() -> None:
