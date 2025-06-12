@@ -1,3 +1,12 @@
+"""Refresh restaurant information for the Olympia, WA area.
+
+The module queries Google Places and other optional data sources to collect
+small-business restaurant details, load them into a SQLite database, and
+produce CSV exports.  Call :func:`main` from the command line or use the
+helper functions (:func:`fetch_google_places`, :func:`fetch_gov_csvs`,
+:func:`fetch_osm`) directly.
+"""
+
 import time
 import json
 import requests
