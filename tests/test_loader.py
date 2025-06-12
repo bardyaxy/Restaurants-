@@ -46,6 +46,7 @@ def test_ensure_db_adds_yelp_columns_fresh_db(tmp_path, monkeypatch):
         "facebook_url",
         "instagram_url",
         "gpv_projection",
+        "owner_name",
     } <= cols
 
 
@@ -72,6 +73,7 @@ def test_ensure_db_adds_yelp_columns_existing_db(tmp_path, monkeypatch):
         "facebook_url",
         "instagram_url",
         "gpv_projection",
+        "owner_name",
     } <= cols
 
 
@@ -98,6 +100,7 @@ def test_ensure_db_updates_partial_schema(tmp_path, monkeypatch):
         "facebook_url",
         "instagram_url",
         "gpv_projection",
+        "owner_name",
     } <= cols
 
 

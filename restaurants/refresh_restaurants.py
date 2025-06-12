@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import asyncio
 import logging
 import pathlib
 import sqlite3
@@ -14,7 +15,7 @@ from restaurants.utils import setup_logging
 from restaurants import loader
 from restaurants.config import GOOGLE_API_KEY, load_zip_codes
 from restaurants.settings import FETCHERS
-from restaurants import google_yelp_enrich
+from restaurants import google_yelp_enrich, owner_enrich_wa
 from restaurants.social_links import extract_social_links
 
 # Aggregate store for fetched restaurant rows
@@ -37,6 +38,11 @@ def main(argv: list[str] | None = None) -> None:
         "--no-yelp",
         action="store_true",
         help="Skip Yelp enrichment step",
+    )
+    parser.add_argument(
+        "--no-wa",
+        action="store_true",
+        help="Skip Washington owner enrichment",
     )
     args = parser.parse_args(argv)
 
@@ -70,6 +76,13 @@ def main(argv: list[str] | None = None) -> None:
     for col in ["facebook_url", "instagram_url", "GPV Projection"]:
         if col not in df.columns:
             df[col] = None
+    if not args.no_wa:
+        df = asyncio.run(owner_enrich_wa.enrich_state(df))
+        df = asyncio.run(owner_enrich_wa.enrich_cities(df))
+        df["owner_name"] = df["owner_name_state"].combine_first(
+            df["owner_name_city"]
+        )
+        df.drop(columns=["owner_name_state", "owner_name_city"], inplace=True)
     if args.strict_zips and "Zip Code" in df.columns:
         df = df[df["Zip Code"].astype(str).isin(zip_list)]
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")

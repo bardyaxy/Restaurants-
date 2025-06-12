@@ -36,7 +36,8 @@ This project collects restaurant information for ZIP codes around Olympia, Washi
 2. Copy `.env.template` to `.env` and add your `GOOGLE_API_KEY` and
    `MAPBOX_TOKEN`. Other keys like `YELP_API_KEY` are optional but required for
    Yelp utilities. The `.env` file is listed in `.gitignore` and should remain
-   untracked. Configuration is loaded via `config.py` which also exposes
+   untracked. You can also set `WA_APP_TOKEN` for the Washington owner lookup.
+   Configuration is loaded via `config.py` which also exposes
    `DEFAULT_ZIP` (set to `98501`).
 3. Run the refresh command:
    ```bash
@@ -96,6 +97,11 @@ Ensure the `dela.sqlite` database exists (created by `refresh_restaurants.py`)
 and that `YELP_API_KEY` is set before running. Without the key the refresh
 command will skip enrichment unless you pass `--no-yelp`.
 
+The refresh step also enriches each record with the business owner's name from
+Washington's Department of Revenue and participating city license rolls. Set
+`WA_APP_TOKEN` and optional `CITY_APP_TOKEN` in your environment to raise the
+request limit. Use `--no-wa` to skip this lookup.
+
 Set `YELP_DEBUG=1` to print debug information about failed lookups, including
 all Yelp candidate names returned for each query.
 
@@ -108,8 +114,8 @@ comma‑separated string, with the first alias stored separately as
 
 Ensure the `restaurants` package is importable before running the tests.
 Running `pytest` without installing dependencies will fail with missing-module
-errors. Install the runtime and development requirements first or simply run
-`./setup_tests.sh` which performs these steps automatically. All runtime
+errors. Be sure to run `pip install -r requirements-dev.txt` (or
+`./setup_tests.sh`) before executing the test suite. All runtime
 dependencies live in `requirements.txt` while the testing tools are listed in
 `requirements-dev.txt`:
 
