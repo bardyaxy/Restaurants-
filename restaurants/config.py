@@ -7,7 +7,7 @@ Olympia, WA, including ZIP codes and geographic coordinates.
 from __future__ import annotations
 
 import os
-from typing import Any, List
+from typing import Any, List, IO
 import logging
 
 # Set up basic logging to warn about configuration issues
@@ -18,7 +18,16 @@ logger = logging.getLogger(__name__)
 try:
     from dotenv import load_dotenv
 except ImportError:
-    def load_dotenv(*_a: Any, **_kw: Any) -> bool:
+    from os import PathLike
+
+    def load_dotenv(
+        dotenv_path: str | PathLike[str] | None = None,
+        stream: IO[str] | None = None,
+        verbose: bool = False,
+        override: bool = False,
+        interpolate: bool = True,
+        encoding: str | None = "utf-8",
+    ) -> bool:
         logger.warning("python-dotenv not installed, .env file not loaded")
         return False
 

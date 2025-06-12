@@ -41,7 +41,7 @@ GOOGLE_DETAILS_URL = "https://maps.googleapis.com/maps/api/place/details/json"
 # OPTIONAL DEPENDENCIES --------------------------------------------------------
 # -----------------------------------------------------------------------------
 try:
-    import geocoder  # fallback geocoding for gov CSVs
+    import geocoder  # type: ignore  # fallback geocoding for gov CSVs
 except ImportError:
     geocoder = None
 
