@@ -36,8 +36,9 @@ This project collects restaurant information for ZIP codes around Olympia, Washi
    ```
 
 By default `refresh_restaurants.py` iterates over the `TARGET_OLYMPIA_ZIPS`
-list in `config.py`.  You can pass `--zips 98501,98502` or enter a list when
-prompted to restrict the fetch to specific ZIP codes.
+list in `config.py`, which now contains just `98501`. You can pass `--zips`
+with any additional ZIP codes (e.g. `--zips 98502`) or enter a comma-separated
+list when prompted to query other areas.
 
 ## Optional GUI
 
