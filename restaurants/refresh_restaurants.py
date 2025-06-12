@@ -1,274 +1,23 @@
-"""Refresh restaurant information for the Olympia, WA area.
+"""Refresh restaurant information for the Olympia, WA area."""
 
-The module queries Google Places and other optional data sources to collect
-small-business restaurant details, load them into a SQLite database, and
-produce CSV exports.  Call :func:`main` from the command line or use the
-helper functions (:func:`fetch_google_places`, :func:`fetch_gov_csvs`,
-:func:`fetch_osm`) directly.
-"""
+from __future__ import annotations
 
-import time
-import json
-import requests
-import pandas as pd
-from datetime import datetime, timezone
+import argparse
+import logging
 import pathlib
 import sqlite3
-import logging
-import argparse
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from tqdm.auto import tqdm
+from datetime import datetime
 
-try:
-    from restaurants.utils import setup_logging, normalize_hours, haversine_miles
-    from restaurants import loader
-    from restaurants.config import (
-        GOOGLE_API_KEY,
-        TARGET_OLYMPIA_ZIPS,
-        OLYMPIA_LAT,
-        OLYMPIA_LON,
-    )
-    from restaurants.chain_blocklist import CHAIN_BLOCKLIST
-    from restaurants.network_utils import check_network
-except ImportError:  # pragma: no cover - fallback for running as script
-    from utils import setup_logging, normalize_hours, haversine_miles  # type: ignore
-    import loader  # type: ignore
-    from config import (  # type: ignore
-        GOOGLE_API_KEY,
-        TARGET_OLYMPIA_ZIPS,
-        OLYMPIA_LAT,
-        OLYMPIA_LON,
-    )
-    from chain_blocklist import CHAIN_BLOCKLIST  # type: ignore  # list of substrings that ID big chains
-    from network_utils import check_network  # type: ignore
-MAX_PAGES = 15   # safety cap; tweak per need
+import pandas as pd
 
-# Google Places endpoints
-GOOGLE_TEXT_URL = "https://maps.googleapis.com/maps/api/place/textsearch/json"
-GOOGLE_DETAILS_URL = "https://maps.googleapis.com/maps/api/place/details/json"
+from restaurants.utils import setup_logging
+from restaurants import loader
+from restaurants.config import GOOGLE_API_KEY, TARGET_OLYMPIA_ZIPS
+from restaurants.settings import FETCHERS
 
-# -----------------------------------------------------------------------------
-# OPTIONAL DEPENDENCIES --------------------------------------------------------
-# -----------------------------------------------------------------------------
-try:
-    import geocoder  # type: ignore  # fallback geocoding for gov CSVs
-except ImportError:
-    geocoder = None
-
-
-# -----------------------------------------------------------------------------
-# LOCAL MODULES ----------------------------------------------------------------
-# -----------------------------------------------------------------------------
-
-
-# Data store for Google Places results
+# Aggregate store for fetched restaurant rows
 smb_restaurants_data: list[dict] = []
 
-# -----------------------------------------------------------------------------
-# CONFIGURATION ----------------------------------------------------------------
-# -----------------------------------------------------------------------------
-GOV_CSV_FILES = {
-    "wa_health": "wa_food_establishments.csv",
-    "thurston_county": "thurston_business_licenses.csv",
-}
-OVERPASS_ENDPOINT = "https://overpass-api.de/api/interpreter"
-
-# -----------------------------------------------------------------------------
-# UTILS ------------------------------------------------------------------------
-# -----------------------------------------------------------------------------
-
-# -----------------------------------------------------------------------------
-# 1) GOOGLE PLACES FETCHER -----------------------------------------------------
-# -----------------------------------------------------------------------------
-
-def _fetch_details(
-    session: requests.Session, params: dict, place_name: str
-) -> dict:
-    """Helper to fetch place details with retries."""
-    for attempt in range(3):
-        try:
-            resp = session.get(GOOGLE_DETAILS_URL, params=params, timeout=15)
-            resp.raise_for_status()
-            return resp.json().get("result", {})
-        except Exception as exc:  # pragma: no cover - network errors
-            if attempt == 2:
-                logging.error("Details failed for %s: %s", place_name, exc)
-                raise SystemExit(1)
-            else:
-                time.sleep(1)
-    return {}
-
-
-def fetch_google_places(zip_codes: list[str]) -> None:
-    """Populate ``smb_restaurants_data`` with Google Places SMB rows.
-
-    Parameters
-    ----------
-    zip_codes:
-        List of ZIP codes to query. The function iterates over them in the
-        provided order and extends ``smb_restaurants_data`` with the results.
-    """
-
-    if not check_network():
-        logging.error("Network unavailable; cannot fetch Google Places data.")
-        raise SystemExit(1)
-
-    with requests.Session() as session, ThreadPoolExecutor(max_workers=8) as executor:
-        for zip_code in tqdm(zip_codes, desc="ZIP codes"):
-            logging.info("Fetching Google Places data for ZIP %s…", zip_code)
-            params = {"key": GOOGLE_API_KEY, "query": f"restaurants in {zip_code} WA"}
-            page = 1
-            while True:
-                try:
-                    resp = session.get(GOOGLE_TEXT_URL, params=params, timeout=15)
-                    logging.info(
-                        "%s page %s -> %s / %s",
-                        zip_code,
-                        page,
-                        resp.status_code,
-                        resp.json().get("status"),
-                    )
-                    resp.raise_for_status()
-                    data = resp.json()
-                except (requests.RequestException, json.JSONDecodeError) as exc:
-                    logging.error("Error during Text Search for %s: %s", zip_code, exc)
-                    raise SystemExit(1)
-
-                page_rows = []
-                for result in data.get("results", []):
-                    name = result.get("name", "")
-                    if any(block in name.lower() for block in CHAIN_BLOCKLIST):
-                        continue  # skip chains
-
-                    basic_row = {
-                        "Name": name,
-                        "Formatted Address": result.get("formatted_address") or result.get("vicinity"),
-                        "Place ID": result.get("place_id"),
-                        "Rating": result.get("rating"),
-                        "User Ratings Total": result.get("user_ratings_total"),
-                        "Business Status": result.get("business_status"),
-                        "lat": result["geometry"]["location"].get("lat"),
-                        "lon": result["geometry"]["location"].get("lng"),
-                    }
-
-                    det_params = {
-                        "key": GOOGLE_API_KEY,
-                        "place_id": basic_row["Place ID"],
-                        "fields": (
-                            "formatted_phone_number,international_phone_number,website,opening_hours,"
-                            "price_level,types,address_components,photo"
-                        ),
-                    }
-                    page_rows.append((basic_row, det_params, name))
-
-                future_map = {
-                    executor.submit(_fetch_details, session, dp, nm): br
-                    for br, dp, nm in page_rows
-                }
-                for fut in as_completed(list(future_map)):
-                        basic_row = future_map[fut]
-                        details = fut.result()
-
-                        opening_hours_raw = details.get("opening_hours", {}).get("weekday_text", [])
-                        photos = details.get("photos", [])
-                        addr_comps = details.get("address_components", [])
-
-                        def _parse_hours(items: list[str]) -> dict:
-                            out: dict[str, str] = {}
-                            for seg in items:
-                                if ":" not in seg:
-                                    continue
-                                day, times = seg.split(":", 1)
-                                out[day.strip()] = times.strip()
-                            return out
-
-                        hours_dict = (
-                            normalize_hours(_parse_hours(opening_hours_raw))
-                            if opening_hours_raw
-                            else {}
-                        )
-
-                        def _ac(key: str):
-                            for comp in addr_comps:
-                                if key in comp.get("types", []):
-                                    return comp.get("long_name")
-                            return ""
-
-                        street = f"{_ac('street_number')} {_ac('route')}".strip()
-
-                        enriched = {
-                            "Formatted Phone Number": details.get("formatted_phone_number"),
-                            "International Phone Number": details.get("international_phone_number"),
-                            "Website": details.get("website"),
-                            "Opening Hours": (
-                                "; ".join(f"{d}: {t}" for d, t in hours_dict.items())
-                                if hours_dict
-                                else None
-                            ),
-                            "Price Level": details.get("price_level"),
-                            "Types": ",".join(details.get("types", [])),
-                            "Category": (details.get("types") or [None])[0],
-                            "Photo Reference": photos[0].get("photo_reference") if photos else None,
-                            "Street Address": street,
-                            "City": _ac("locality"),
-                            "State": _ac("administrative_area_level_1"),
-                            "Zip Code": _ac("postal_code") or zip_code,
-                        }
-
-                        dist = haversine_miles(
-                            OLYMPIA_LAT,
-                            OLYMPIA_LON,
-                            basic_row["lat"],
-                            basic_row["lon"],
-                        )
-                        enriched["Distance Miles"] = round(dist, 2) if dist is not None else None
-
-                        smb_restaurants_data.append(
-                            {
-                                **basic_row,
-                                **enriched,
-                                "source": "google_places_smb",
-                                "last_seen": datetime.now(timezone.utc).isoformat(),
-                            }
-                        )
-
-                # ----- paging (run once per Google response) -----
-                next_token = data.get("next_page_token")
-                if not next_token or page >= MAX_PAGES:
-                    break                    # no more pages or hit our safety cap
-                time.sleep(2)                # Google requires a short pause
-                params = {"key": GOOGLE_API_KEY, "pagetoken": next_token}
-                page += 1
-
-    logging.info("Collected %s SMB rows with enrichment.", len(smb_restaurants_data))
-
-
-# -----------------------------------------------------------------------------
-# 2) GOVERNMENT CSV IMPORTER ----------------------------------------------------
-# (unchanged except for timezone fix) -----------------------------------------
-# -----------------------------------------------------------------------------
-
-def fetch_gov_csvs():
-    logging.info("Government CSV import disabled in this trimmed script.")
-    return pd.DataFrame(columns=["name", "address", "lat", "lon", "phone", "source", "last_seen"])
-
-
-# -----------------------------------------------------------------------------
-# 3) OPENSTREETMAP FETCHER ------------------------------------------------------
-# (kept but network‑guarded) ----------------------------------------------------
-# -----------------------------------------------------------------------------
-
-def fetch_osm():
-    if not check_network():
-        logging.error("Network unavailable; cannot fetch OSM data.")
-        raise SystemExit(1)
-    # … (same as before) – omitted here for brevity
-    return pd.DataFrame()
-
-
-# -----------------------------------------------------------------------------
-# 4) MAIN ----------------------------------------------------------------------
-# -----------------------------------------------------------------------------
 
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description="Refresh restaurant data")
@@ -283,13 +32,18 @@ def main(argv: list[str] | None = None) -> None:
     if not GOOGLE_API_KEY:
         logging.error("GOOGLE_API_KEY is required")
         raise SystemExit(1)
+
     smb_restaurants_data.clear()
     if args.zips:
         zip_list = [z.strip() for z in args.zips.split(",") if z.strip()]
     else:
         zip_list = [str(z) for z in TARGET_OLYMPIA_ZIPS]
 
-    fetch_google_places(zip_list)
+    for fetcher_cls, enabled in FETCHERS:
+        if not enabled:
+            continue
+        fetcher = fetcher_cls()
+        smb_restaurants_data.extend(fetcher.fetch(zip_list))
 
     if not smb_restaurants_data:
         logging.info("No SMB restaurants found – nothing to write.")
@@ -303,8 +57,6 @@ def main(argv: list[str] | None = None) -> None:
 
     csv_path = pathlib.Path(out_csv)
     loader.load(csv_path)
-
-    # Yelp enrichment step removed in favor of on-demand enrichment
 
     conn = sqlite3.connect(loader.DB_PATH)
     df_db = pd.read_sql_query("SELECT * FROM places", conn)
