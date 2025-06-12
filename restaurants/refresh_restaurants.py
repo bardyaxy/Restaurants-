@@ -26,6 +26,11 @@ def main(argv: list[str] | None = None) -> None:
         dest="zips",
         help="Comma-separated list of ZIP codes to query",
     )
+    parser.add_argument(
+        "--strict-zips",
+        action="store_true",
+        help="Only keep rows whose Zip Code matches the provided list",
+    )
     args = parser.parse_args(argv)
 
     setup_logging()
@@ -50,6 +55,8 @@ def main(argv: list[str] | None = None) -> None:
         return
 
     df = pd.DataFrame(smb_restaurants_data)
+    if args.strict_zips and "Zip Code" in df.columns:
+        df = df[df["Zip Code"].astype(str).isin(zip_list)]
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     out_csv = f"olympia_smb_google_restaurants_{timestamp}.csv"
     df.to_csv(out_csv, index=False)
