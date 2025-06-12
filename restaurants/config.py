@@ -18,9 +18,9 @@ logger = logging.getLogger(__name__)
 try:
     from dotenv import load_dotenv
 except ImportError:
-    def load_dotenv(*_a: Any, **_kw: Any) -> None:
+    def load_dotenv(*_a: Any, **_kw: Any) -> bool:
         logger.warning("python-dotenv not installed, .env file not loaded")
-        return None
+        return False
 
 load_dotenv()
 
