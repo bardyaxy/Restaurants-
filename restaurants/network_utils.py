@@ -20,7 +20,11 @@ def check_network(
     restricted networks.
     """
     url = os.getenv("NETWORK_TEST_URL", url)
+    default_method = method
     method = os.getenv("NETWORK_TEST_METHOD", method)
+    if method.upper() not in ("GET", "HEAD"):
+        logging.error("Invalid NETWORK_TEST_METHOD value: %s", method)
+        method = default_method
     timeout_env = os.getenv("NETWORK_TEST_TIMEOUT")
     if timeout_env:
         try:
