@@ -11,3 +11,20 @@ body,
   bottom: 0;
   width: 100%;
 }
+
+.spinner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 0.5rem 1rem;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 4px;
+  font-family: sans-serif;
+  z-index: 1;
+}
+
+.no-data {
+  padding: 1rem;
+  font-family: sans-serif;
+}
