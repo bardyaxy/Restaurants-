@@ -80,6 +80,8 @@ RENAMES = {
 # --------------------------------------------------------------------------- #
 # Helpers
 # --------------------------------------------------------------------------- #
+
+
 def ensure_db() -> sqlite3.Connection:
     """Create dela.sqlite and the places table if they don’t exist yet."""
     conn = sqlite3.connect(DB_PATH)
@@ -199,7 +201,10 @@ def load_yelp_json(json_file: pathlib.Path) -> None:
         cur.execute(insert_sql, [row.get(c) for c in cols])
 
     conn.commit()
-    logging.info("Yelp JSON loaded. Rows now in table: %s", cur.execute("SELECT COUNT(*) FROM places").fetchone()[0])
+    logging.info(
+        "Yelp JSON loaded. Rows now in table: %s",
+        cur.execute("SELECT COUNT(*) FROM places").fetchone()[0],
+    )
     conn.close()
 
 
@@ -207,8 +212,12 @@ def load_yelp_json(json_file: pathlib.Path) -> None:
 # CLI
 # --------------------------------------------------------------------------- #
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Load a Google-Places CSV into dela.sqlite")
-    parser.add_argument("csv", help="Path to CSV produced by refresh_restaurants.py")
+    parser = argparse.ArgumentParser(
+        description="Load a Google-Places CSV into dela.sqlite"
+    )
+    parser.add_argument(
+        "csv", help="Path to CSV produced by refresh_restaurants.py"
+    )
     args = parser.parse_args()
 
     csv_path = pathlib.Path(args.csv).expanduser()
