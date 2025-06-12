@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import glob
 import logging
+import os
 import pandas as pd
 
 try:
@@ -101,10 +102,23 @@ def main(argv: list[str] | None = None) -> None:
     # ------------------------------------------------------------------
     out_csv = "restaurants_prepped.csv"
     out_xlsx = "restaurants_prepped.xlsx"
+    tmp_csv = "restaurants_prepped.tmp.csv"
+    tmp_xlsx = "restaurants_prepped.tmp.xlsx"
 
-    df.to_csv(out_csv, index=False)
-    df.to_excel(out_xlsx, index=False, engine="xlsxwriter")
-    logging.info("Cleaned %s → %s & %s  (%s rows)", newest, out_csv, out_xlsx, len(df))
+    df.to_csv(tmp_csv, index=False)
+    df.to_excel(tmp_xlsx, index=False, engine="xlsxwriter")
+
+    # Atomically replace the old files so a crash can't leave them half-written
+    os.replace(tmp_csv, out_csv)
+    os.replace(tmp_xlsx, out_xlsx)
+
+    logging.info(
+        "Cleaned %s → %s & %s  (%s rows)",
+        newest,
+        out_csv,
+        out_xlsx,
+        len(df),
+    )
 
 
 if __name__ == "__main__":  # pragma: no cover - manual execution
