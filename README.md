@@ -126,10 +126,11 @@ Run the helper script after cleaning the data to create `restaurants.geojson` in
 python -m restaurants.export_geojson
 ```
 
-## React development server
+## React development server (disabled)
 
-The React frontend lives in `frontend/`. Install dependencies and start the dev
-server with:
+The React frontend lives in `frontend/`, but it is currently disabled. If you
+want to work on the UI later install dependencies and start the dev server
+manually with:
 
 ```bash
 cd frontend
@@ -148,22 +149,15 @@ VITE_MAPBOX_TOKEN=<your token>
 `src/App.jsx` reads this value via `import.meta.env.VITE_MAPBOX_TOKEN` when the
 dev server runs.
 
-You can also run both the backend refresh command and the React dev server at
-once using the root `package.json`:
-
-```bash
-npm start
-```
-
-This command launches `python -m restaurants.refresh_restaurants` and `npm
---prefix frontend run dev` concurrently.
+Running `npm start` now only refreshes restaurant data because the frontend is
+disabled.
 
 ## Makefile
 
-A Makefile streamlines the workflow of fetching data and launching the frontend. Run:
+The `Makefile` streamlines the workflow of refreshing data and exporting GeoJSON. Run:
 
 ```bash
 make all
 ```
 
-The command refreshes restaurant data, exports `restaurants.geojson`, and starts the React development server.
+This command refreshes restaurant data and exports `restaurants.geojson`.
