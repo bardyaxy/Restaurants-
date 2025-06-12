@@ -1,0 +1,3 @@
+[tool.black]
+required-version = "25.1.0"
+

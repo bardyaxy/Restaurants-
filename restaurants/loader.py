@@ -4,6 +4,7 @@ Load a Google-Places CSV into dela.sqlite
 Usage:
     python loader.py path/to/file.csv
 """
+
 import csv
 import argparse
 import sqlite3
@@ -20,7 +21,8 @@ except ImportError:  # pragma: no cover - fallback for running as script
 
 DB_PATH = pathlib.Path(__file__).with_name("dela.sqlite")
 
-SCHEMA = textwrap.dedent("""
+SCHEMA = textwrap.dedent(
+    """
 CREATE TABLE IF NOT EXISTS places (
   place_id TEXT PRIMARY KEY,
   name TEXT,
@@ -52,7 +54,8 @@ CREATE TABLE IF NOT EXISTS places (
   yelp_primary_cuisine TEXT,
   yelp_category_titles TEXT
 );
-""")
+"""
+)
 
 RENAMES = {
     "Place ID": "place_id",
@@ -74,7 +77,7 @@ RENAMES = {
     "Types": "categories",
     "Category": "category",
     "Distance Miles": "distance_miles",
-    "source": "source"
+    "source": "source",
 }
 
 # --------------------------------------------------------------------------- #
@@ -153,7 +156,7 @@ def load_yelp_json(json_file: pathlib.Path) -> None:
         f"VALUES ({', '.join(['?'] * len(cols))})"
     )
 
-    with json_file.open(encoding='utf-8') as f:
+    with json_file.open(encoding="utf-8") as f:
         data = json.load(f)
 
     now = datetime.now(timezone.utc).isoformat()
@@ -215,9 +218,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Load a Google-Places CSV into dela.sqlite"
     )
-    parser.add_argument(
-        "csv", help="Path to CSV produced by refresh_restaurants.py"
-    )
+    parser.add_argument("csv", help="Path to CSV produced by refresh_restaurants.py")
     args = parser.parse_args()
 
     csv_path = pathlib.Path(args.csv).expanduser()

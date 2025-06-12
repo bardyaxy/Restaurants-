@@ -56,9 +56,7 @@ def main(argv: list[str] | None = None) -> None:
     # ------------------------------------------------------------------
     # 1.  UTF-8 cleanup (narrow no-break space)
     # ------------------------------------------------------------------
-    df["Opening Hours"] = (
-        df["Opening Hours"].str.replace("\u202f", " ", regex=False)
-    )
+    df["Opening Hours"] = df["Opening Hours"].str.replace("\u202f", " ", regex=False)
 
     # ------------------------------------------------------------------
     # 2.  Split opening hours into a dict per row
@@ -74,9 +72,9 @@ def main(argv: list[str] | None = None) -> None:
     # ------------------------------------------------------------------
     # 4.  Haversine distance to Bellevue Square Mall
     # ------------------------------------------------------------------
-    df["Distance Miles"] = (
-        haversine_miles_series(df["lat"], df["lon"], BX_LAT, BX_LON).round(2)
-    )
+    df["Distance Miles"] = haversine_miles_series(
+        df["lat"], df["lon"], BX_LAT, BX_LON
+    ).round(2)
 
     # ------------------------------------------------------------------
     # 5.  Quick lead-quality flags
@@ -106,11 +104,8 @@ def main(argv: list[str] | None = None) -> None:
 
     df.to_csv(out_csv, index=False)
     df.to_excel(out_xlsx, index=False, engine="xlsxwriter")
-    logging.info(
-        "Cleaned %s → %s & %s  (%s rows)", newest, out_csv, out_xlsx, len(df)
-    )
+    logging.info("Cleaned %s → %s & %s  (%s rows)", newest, out_csv, out_xlsx, len(df))
 
 
 if __name__ == "__main__":  # pragma: no cover - manual execution
     main()
-

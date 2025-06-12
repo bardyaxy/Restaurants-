@@ -4,14 +4,16 @@ import glob
 
 
 def test_prep_restaurants_functions(tmp_path, monkeypatch):
-    df = pd.DataFrame({
-        "Opening Hours": ["Mon: 9-5"],
-        "lat": [47.6],
-        "lon": [-122.2],
-        "Price Level": [2],
-        "Formatted Phone Number": ["123"],
-        "Website": ["x"],
-    })
+    df = pd.DataFrame(
+        {
+            "Opening Hours": ["Mon: 9-5"],
+            "lat": [47.6],
+            "lon": [-122.2],
+            "Price Level": [2],
+            "Formatted Phone Number": ["123"],
+            "Website": ["x"],
+        }
+    )
 
     monkeypatch.setattr(glob, "glob", lambda pattern: [str(tmp_path / "input.csv")])
     monkeypatch.setattr(pd, "read_csv", lambda path: df)
@@ -42,4 +44,3 @@ def test_prep_restaurants_functions(tmp_path, monkeypatch):
         pr.BX_LON,
     )
     assert series_dist.iloc[0] == 0
-

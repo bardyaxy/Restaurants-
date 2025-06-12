@@ -13,11 +13,12 @@ from tqdm.auto import tqdm
 # ---------------------------------------------------------------------------
 try:
     from restaurants.config import GOOGLE_API_KEY
-    from restaurants.chain_blocklist import CHAIN_BLOCKLIST            # names to skip
-    from restaurants.network_utils import check_network                # simple ping check
+    from restaurants.chain_blocklist import CHAIN_BLOCKLIST  # names to skip
+    from restaurants.network_utils import check_network  # simple ping check
     from restaurants.utils import setup_logging, is_valid_zip
 except ImportError:  # pragma: no cover - fallback when running as script
     from config import GOOGLE_API_KEY  # type: ignore
+
     try:
         from chain_blocklist import CHAIN_BLOCKLIST  # type: ignore
     except ImportError:
@@ -25,12 +26,15 @@ except ImportError:  # pragma: no cover - fallback when running as script
     try:
         from network_utils import check_network  # type: ignore
     except ImportError:
+
         def check_network() -> bool:  # type: ignore[misc]
             return True
+
     from utils import setup_logging, is_valid_zip  # type: ignore
 
-SEARCH_URL  = "https://maps.googleapis.com/maps/api/place/textsearch/json"
+SEARCH_URL = "https://maps.googleapis.com/maps/api/place/textsearch/json"
 DETAILS_URL = "https://maps.googleapis.com/maps/api/place/details/json"
+
 
 # ---------------------------------------------------------------------------
 # 1.  Helpers
@@ -42,9 +46,11 @@ def load_seen_ids(path: str = "seen_place_ids.json") -> set[str]:
     except (OSError, json.JSONDecodeError):
         return set()
 
+
 def save_seen_ids(ids: set[str], path: str = "seen_place_ids.json") -> None:
     with open(path, "w", encoding="utf-8") as f:
         json.dump(sorted(ids), f, indent=2)
+
 
 def fetch_details(place_id: str, session: requests.Session) -> dict:
     # Concurrent workers share ``session`` and only issue GET requests,
@@ -64,6 +70,7 @@ def fetch_details(place_id: str, session: requests.Session) -> dict:
     except Exception as exc:
         logging.error("Details fetch failed for %s: %s", place_id, exc)
         return {}
+
 
 # ---------------------------------------------------------------------------
 # 2.  Main workflow
@@ -103,14 +110,11 @@ def main() -> None:
     new_rows: list[dict] = []
 
     with requests.Session() as session:
-        session.trust_env = False           # ignore any HTTP(S)_PROXY env vars
+        session.trust_env = False  # ignore any HTTP(S)_PROXY env vars
 
         for zip_code in tqdm(zip_list, desc="ZIP codes"):
             zip_start_count = len(new_rows)
-            params = {
-                "key": GOOGLE_API_KEY,
-                "query": f"restaurants in {zip_code} WA"
-            }
+            params = {"key": GOOGLE_API_KEY, "query": f"restaurants in {zip_code} WA"}
             page = 1
             while True:
                 print(f"→ {zip_code} page {page} requesting", flush=True)
@@ -121,7 +125,8 @@ def main() -> None:
                     data = resp.json()
                     print(
                         f"{zip_code} page {page} -> {resp.status_code} / "
-                        f"{data.get('status')}", flush=True
+                        f"{data.get('status')}",
+                        flush=True,
                     )
                 except (requests.Timeout, requests.ConnectionError) as exc:
                     logging.error("Search timeout for %s: %s", zip_code, exc)
@@ -149,27 +154,37 @@ def main() -> None:
                         if not details:
                             continue
                         seen_ids.add(pid)
-                        new_rows.append({
-                            "Business Name": details.get("name"),
-                            "Formatted Address": details.get("formatted_address"),
-                            "Place ID": pid,
-                            "Formatted Phone Number": details.get("formatted_phone_number"),
-                            "International Phone Number": details.get("international_phone_number"),
-                            "Website": details.get("website"),
-                            "Rating": details.get("rating"),
-                            "User Ratings Total": details.get("user_ratings_total"),
-                            "Business Status": details.get("business_status"),
-                            "Price Level": details.get("price_level"),
-                            "lat": details.get("geometry", {}).get("location", {}).get("lat"),
-                            "lon": details.get("geometry", {}).get("location", {}).get("lng"),
-                            "last_seen": datetime.now(timezone.utc).isoformat(),
-                        })
+                        new_rows.append(
+                            {
+                                "Business Name": details.get("name"),
+                                "Formatted Address": details.get("formatted_address"),
+                                "Place ID": pid,
+                                "Formatted Phone Number": details.get(
+                                    "formatted_phone_number"
+                                ),
+                                "International Phone Number": details.get(
+                                    "international_phone_number"
+                                ),
+                                "Website": details.get("website"),
+                                "Rating": details.get("rating"),
+                                "User Ratings Total": details.get("user_ratings_total"),
+                                "Business Status": details.get("business_status"),
+                                "Price Level": details.get("price_level"),
+                                "lat": details.get("geometry", {})
+                                .get("location", {})
+                                .get("lat"),
+                                "lon": details.get("geometry", {})
+                                .get("location", {})
+                                .get("lng"),
+                                "last_seen": datetime.now(timezone.utc).isoformat(),
+                            }
+                        )
 
                 # ---------- pagination ----------
                 next_tok = data.get("next_page_token")
                 if not next_tok:
                     break
-                time.sleep(2)                       # Google recommends ~2 s wait
+                time.sleep(2)  # Google recommends ~2 s wait
                 params = {"key": GOOGLE_API_KEY, "pagetoken": next_tok}
                 page += 1
 
@@ -192,6 +207,7 @@ def main() -> None:
 
     save_seen_ids(seen_ids)
     print(f"✅ Saved {len(new_rows)} leads to {out_csv}")
+
 
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":

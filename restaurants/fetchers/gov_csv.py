@@ -10,5 +10,7 @@ class GovCsvFetcher(BaseFetcher):
 
     def fetch(self, zip_codes: list[str], **opts) -> list[dict]:
         logging.info("Government CSV import disabled in this trimmed script.")
-        df = pd.DataFrame(columns=["name", "address", "lat", "lon", "phone", "source", "last_seen"])
+        df = pd.DataFrame(
+            columns=["name", "address", "lat", "lon", "phone", "source", "last_seen"]
+        )
         return df.to_dict(orient="records")

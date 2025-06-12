@@ -31,6 +31,7 @@ except ImportError:
         logger.warning("python-dotenv not installed, .env file not loaded")
         return False
 
+
 load_dotenv()
 
 # API keys from environment variables
