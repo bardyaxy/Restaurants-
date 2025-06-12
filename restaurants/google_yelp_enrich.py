@@ -10,6 +10,8 @@ import argparse
 import json
 import logging
 from typing import Any, Dict, Iterable
+import sqlite3
+from . import loader
 
 import requests
 
@@ -185,6 +187,48 @@ def enrich_restaurant(name: str, location: str) -> dict[str, Any]:
                 "summary": summary,
             },
         }
+
+
+def yelp_enrich_all() -> None:
+    """Enrich all rows in ``dela.sqlite`` with Yelp info."""
+    conn = sqlite3.connect(loader.DB_PATH)
+    cur = conn.cursor()
+    rows = cur.execute("SELECT rowid, name, city, state FROM places").fetchall()
+    for rowid, name, city, state in rows:
+        loc = " ".join(p for p in (city, state) if p)
+        data = enrich_restaurant(name, loc)
+        if not data or not data.get("yelp"):
+            continue
+        details = data["yelp"].get("details") or {}
+        summary = data["yelp"].get("summary") or {}
+        cats = details.get("categories") or []
+        aliases = [c.get("alias") for c in cats if c.get("alias")]
+        titles = [c.get("title") for c in cats if c.get("title")]
+        cur.execute(
+            """
+            UPDATE places SET
+                yelp_rating=?,
+                yelp_reviews=?,
+                yelp_price_tier=?,
+                yelp_status=?,
+                yelp_cuisines=?,
+                yelp_primary_cuisine=?,
+                yelp_category_titles=?
+            WHERE rowid=?
+            """,
+            (
+                summary.get("rating"),
+                summary.get("review_count"),
+                summary.get("price"),
+                "closed" if summary.get("is_closed") else "open",
+                ",".join(aliases) if aliases else None,
+                aliases[0] if aliases else None,
+                ",".join(titles) if titles else None,
+                rowid,
+            ),
+        )
+    conn.commit()
+    conn.close()
 
 
 def main(argv: list[str] | None = None) -> None:

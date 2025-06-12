@@ -279,6 +279,7 @@ def test_strict_zips_filters_rows(monkeypatch):
     monkeypatch.setattr(rr, "GOOGLE_API_KEY", "DUMMY")
     monkeypatch.setattr(rr.loader, "load", lambda _p: None)
     monkeypatch.setattr(rr.pd, "read_sql_query", lambda q, c: pd.DataFrame())
+    monkeypatch.setattr(rr.google_yelp_enrich, "yelp_enrich_all", lambda: None)
 
     class DummyConn:
         def close(self):
@@ -298,3 +299,63 @@ def test_strict_zips_filters_rows(monkeypatch):
     assert saved
     df = saved[0]
     assert list(df["Zip Code"]) == ["98501", "98002"]
+
+
+def test_refresh_main_runs_yelp(monkeypatch):
+    class DummyFetcher:
+        def fetch(self, zip_codes, **opts):
+            return [{"Name": "A", "Place ID": "p1"}]
+
+    monkeypatch.setattr(rr, "FETCHERS", [(DummyFetcher, True)])
+    monkeypatch.setattr(rr, "GOOGLE_API_KEY", "DUMMY")
+    monkeypatch.setattr(rr.loader, "load", lambda _p: None)
+    monkeypatch.setattr(rr.pd, "read_sql_query", lambda q, c: pd.DataFrame())
+
+    class DummyConn:
+        def close(self):
+            pass
+
+    monkeypatch.setattr(rr.sqlite3, "connect", lambda _p: DummyConn())
+
+    called = {}
+    monkeypatch.setattr(
+        rr.google_yelp_enrich,
+        "yelp_enrich_all",
+        lambda: called.setdefault("yelp", True),
+    )
+
+    monkeypatch.setattr(pd.DataFrame, "to_csv", lambda self, path, index=False: None)
+
+    rr.main(["--zips", "98501"])
+
+    assert called.get("yelp")
+
+
+def test_refresh_main_no_yelp(monkeypatch):
+    class DummyFetcher:
+        def fetch(self, zip_codes, **opts):
+            return [{"Name": "A", "Place ID": "p1"}]
+
+    monkeypatch.setattr(rr, "FETCHERS", [(DummyFetcher, True)])
+    monkeypatch.setattr(rr, "GOOGLE_API_KEY", "DUMMY")
+    monkeypatch.setattr(rr.loader, "load", lambda _p: None)
+    monkeypatch.setattr(rr.pd, "read_sql_query", lambda q, c: pd.DataFrame())
+
+    class DummyConn:
+        def close(self):
+            pass
+
+    monkeypatch.setattr(rr.sqlite3, "connect", lambda _p: DummyConn())
+
+    called = {}
+    monkeypatch.setattr(
+        rr.google_yelp_enrich,
+        "yelp_enrich_all",
+        lambda: called.setdefault("yelp", True),
+    )
+
+    monkeypatch.setattr(pd.DataFrame, "to_csv", lambda self, path, index=False: None)
+
+    rr.main(["--zips", "98501", "--no-yelp"])
+
+    assert "yelp" not in called
