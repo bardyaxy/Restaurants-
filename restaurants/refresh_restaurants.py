@@ -83,6 +83,7 @@ def _fetch_details(
         except Exception as exc:  # pragma: no cover - network errors
             if attempt == 2:
                 logging.error("Details failed for %s: %s", place_name, exc)
+                raise SystemExit(1)
             else:
                 time.sleep(1)
     return {}
@@ -99,8 +100,8 @@ def fetch_google_places(zip_codes: list[str]) -> None:
     """
 
     if not check_network():
-        logging.info("Skipping Google Places fetch due to no network connectivity.")
-        return
+        logging.error("Network unavailable; cannot fetch Google Places data.")
+        raise SystemExit(1)
 
     with requests.Session() as session, ThreadPoolExecutor(max_workers=8) as executor:
         for zip_code in zip_codes:
@@ -121,7 +122,7 @@ def fetch_google_places(zip_codes: list[str]) -> None:
                     data = resp.json()
                 except (requests.RequestException, json.JSONDecodeError) as exc:
                     logging.error("Error during Text Search for %s: %s", zip_code, exc)
-                    break
+                    raise SystemExit(1)
 
                 page_rows = []
                 for result in data.get("results", []):
@@ -249,7 +250,8 @@ def fetch_gov_csvs():
 
 def fetch_osm():
     if not check_network():
-        return pd.DataFrame(columns=["name", "address", "lat", "lon", "phone", "source", "last_seen"])
+        logging.error("Network unavailable; cannot fetch OSM data.")
+        raise SystemExit(1)
     # … (same as before) – omitted here for brevity
     return pd.DataFrame()
 
@@ -268,6 +270,9 @@ def main(argv: list[str] | None = None) -> None:
     args = parser.parse_args(argv)
 
     setup_logging()
+    if not GOOGLE_API_KEY:
+        logging.error("GOOGLE_API_KEY is required")
+        raise SystemExit(1)
     smb_restaurants_data.clear()
     if args.zips:
         zip_list = [z.strip() for z in args.zips.split(",") if z.strip()]
