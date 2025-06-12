@@ -23,7 +23,7 @@ def test_enrich_restaurant_success(monkeypatch):
         if url == gye.GOOGLE_SEARCH_URL:
             return DummyResp({"results": [{"name": "Foo", "place_id": "p1", "geometry": {"location": {"lat": 1.0, "lng": 2.0}}}]})
         elif url == gye.YELP_SEARCH_URL:
-            return DummyResp({"businesses": [{"id": "y1"}]})
+            return DummyResp({"businesses": [{"id": "y1", "name": "Foo"}]})
         elif url == gye.YELP_DETAILS_URL.format(id="y1"):
             return DummyResp({"id": "y1", "name": "Foo Yelp"})
         elif url == gye.YELP_REVIEWS_URL.format(id="y1"):

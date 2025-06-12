@@ -62,7 +62,7 @@ data and fetching Toast leads.
 Run `google_yelp_enrich.py` to supplement Google Places rows with Yelp ratings and
 categories. The script searches Yelp by the restaurant name and city and scans
 up to five candidates. `rapidfuzz.fuzz.token_set_ratio` picks the best match and
- only applies it when the score is at least 60. If no strong match is found and a
+ only applies it when the score meets the `YELP_MATCH_THRESHOLD` (60 by default). If no strong match is found and a
 phone number is available, the script falls back to a phone-based Yelp search.
 Rows without a valid match are left unchanged and marked as `FAIL`.
 

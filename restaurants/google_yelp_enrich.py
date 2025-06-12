@@ -23,6 +23,9 @@ YELP_SEARCH_URL = "https://api.yelp.com/v3/businesses/search"
 YELP_DETAILS_URL = "https://api.yelp.com/v3/businesses/{id}"
 YELP_REVIEWS_URL = "https://api.yelp.com/v3/businesses/{id}/reviews"
 
+# Minimum fuzzy match score required to accept a Yelp business match
+YELP_MATCH_THRESHOLD = 60
+
 
 def search_google_place(name: str, location: str, session: requests.Session) -> dict[str, Any]:
     """Return the first Google place result for ``name`` and ``location``."""
@@ -42,6 +45,8 @@ def _pick_best_by_name(name: str, businesses: Iterable[dict[str, Any]]) -> dict[
         if score > best_score:
             best = biz
             best_score = score
+    if best_score < YELP_MATCH_THRESHOLD:
+        return {}
     return best or {}
 
 
