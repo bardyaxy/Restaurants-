@@ -169,6 +169,78 @@ def test_fetch_google_places_details_failure(monkeypatch):
         gp.GooglePlacesFetcher().fetch(["98501"])
 
 
+def test_fetch_google_places_chain_blocklist(monkeypatch):
+    monkeypatch.setattr(gp, "check_network", lambda: True)
+
+    class DummyResp:
+        def __init__(self, data):
+            self._data = data
+            self.status_code = 200
+
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return self._data
+
+    def dummy_get(self, url, params=None, timeout=None):
+        if "textsearch" in url:
+            return DummyResp({
+                "results": [
+                    {
+                        "name": "Denny's",
+                        "formatted_address": "addr1",
+                        "place_id": "p1",
+                        "rating": 3.0,
+                        "user_ratings_total": 1,
+                        "business_status": "OP",
+                        "geometry": {"location": {"lat": 1, "lng": 2}},
+                    },
+                    {
+                        "name": "Local Cafe",
+                        "formatted_address": "addr2",
+                        "place_id": "p2",
+                        "rating": 4.5,
+                        "user_ratings_total": 7,
+                        "business_status": "OP",
+                        "geometry": {"location": {"lat": 3, "lng": 4}},
+                    },
+                ]
+            })
+        elif "details" in url:
+            return DummyResp({"result": {}})
+        raise AssertionError("unexpected url " + url)
+
+    monkeypatch.setattr(gp.requests.sessions.Session, "get", dummy_get)
+
+    class DummyFuture:
+        def __init__(self, res):
+            self._res = res
+
+        def result(self):
+            return self._res
+
+    class DummyExecutor:
+        def __init__(self, max_workers=None):
+            pass
+
+        def submit(self, fn, *args, **kw):
+            return DummyFuture(fn(*args, **kw))
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            pass
+
+    monkeypatch.setattr(gp, "ThreadPoolExecutor", DummyExecutor)
+    monkeypatch.setattr(gp, "as_completed", lambda it: it)
+
+    rows = gp.GooglePlacesFetcher().fetch(["98501"])
+    assert len(rows) == 1
+    assert rows[0]["Name"] == "Local Cafe"
+
+
 def test_main_missing_api_key(monkeypatch):
     monkeypatch.setattr(rr, "GOOGLE_API_KEY", None)
     monkeypatch.setattr(rr, "FETCHERS", [])

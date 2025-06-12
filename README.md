@@ -4,7 +4,14 @@ This project collects restaurant information for ZIP codes around Olympia, Washi
 
 ## Features
 
-- **Google Places SMB fetcher** with a chain blocklist. This is the only active data source and records rating, review count, business status and coordinates.
+- **Google Places SMB fetcher** with a chain blocklist that skips major
+  franchises to focus on local spots. Filtered chains include Starbucks,
+  McDonald's, Subway, Burger King, Taco Bell, Wendy's, KFC, Dunkin', Pizza Hut,
+  Domino's Pizza, Little Caesars, Chipotle Mexican Grill, Panera Bread,
+  Chick-fil-A, Panda Express, Arby's, Dairy Queen, Applebee's, Olive Garden,
+  Red Lobster, Outback Steakhouse, Buffalo Wild Wings, Denny's (Dennys), IHOP,
+  Red Robin, Cheesecake Factory, Papa John's (Papa Johns), TGI Friday's,
+  Five Guys and Dave & Buster's.
 - **Government CSV importer** *(disabled)* for Washington health and Thurston County license data.
 - **OpenStreetMap fetcher** *(disabled)* for additional restaurant listings.
 - **Deduplication routine** that merges results from all sources while prioritizing Google Places SMB entries.
