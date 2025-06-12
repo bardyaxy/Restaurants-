@@ -54,7 +54,8 @@ CREATE TABLE IF NOT EXISTS places (
   yelp_primary_cuisine TEXT,
   yelp_category_titles TEXT,
   facebook_url TEXT,
-  instagram_url TEXT
+  instagram_url TEXT,
+  gpv_projection REAL
 );
 """
 )
@@ -82,6 +83,7 @@ RENAMES = {
     "source": "source",
     "facebook_url": "facebook_url",
     "instagram_url": "instagram_url",
+    "GPV Projection": "gpv_projection",
 }
 
 # --------------------------------------------------------------------------- #
@@ -110,6 +112,8 @@ def ensure_db() -> sqlite3.Connection:
         cur.execute("ALTER TABLE places ADD COLUMN facebook_url TEXT")
     if "instagram_url" not in cols:
         cur.execute("ALTER TABLE places ADD COLUMN instagram_url TEXT")
+    if "gpv_projection" not in cols:
+        cur.execute("ALTER TABLE places ADD COLUMN gpv_projection REAL")
     conn.commit()
     return conn
 

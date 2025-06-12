@@ -67,7 +67,7 @@ def main(argv: list[str] | None = None) -> None:
         return
 
     df = pd.DataFrame(smb_restaurants_data)
-    for col in ["facebook_url", "instagram_url"]:
+    for col in ["facebook_url", "instagram_url", "GPV Projection"]:
         if col not in df.columns:
             df[col] = None
     if args.strict_zips and "Zip Code" in df.columns:

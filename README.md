@@ -14,6 +14,8 @@ This project collects restaurant information for ZIP codes around Olympia, Washi
   Five Guys and Dave & Buster's.
 - **Government CSV importer** *(disabled)* for Washington health and Thurston County license data.
 - **OpenStreetMap fetcher** *(disabled)* for additional restaurant listings.
+- **GPV projection fetcher** *(optional)* reads projected visitor volume from a
+  CSV and adds a `GPV Projection` column.
 - **Deduplication routine** that merges results from all sources while prioritizing Google Places SMB entries.
 - **Automatic social link extraction** scrapes each website for Facebook and Instagram URLs.
 - **Network check** using a lightweight GET request to gracefully skip online
