@@ -1,3 +1,9 @@
+"""Fetch restaurant leads from Google Places for the Toast POS team.
+
+ZIP codes are read from ``toast_zips.txt`` and new results are written to
+``olympia_toast_smb_<timestamp>.csv``.
+"""
+
 import json
 import csv
 import time
