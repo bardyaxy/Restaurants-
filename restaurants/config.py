@@ -7,12 +7,15 @@ Olympia, WA, including ZIP codes and geographic coordinates.
 from __future__ import annotations
 
 import os
+import pathlib
 from typing import Any, List, IO
 import logging
 
 # Set up basic logging to warn about configuration issues
 logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
+
+from restaurants.utils import is_valid_zip
 
 # Load environment variables from .env file if python-dotenv is available
 try:
@@ -55,66 +58,33 @@ if _missing:
         "Add them to your .env file or export them before running."
     )
 
-# List of ZIP codes for the Olympia, WA area
-TARGET_OLYMPIA_ZIPS: List[str] = [
-    "98330",
-    "98360",
-    "98492",
-    "98496",
-    "98444",
-    "98303",
-    "98498",
-    "98499",
-    "98388",
-    "98497",
-    "98351",
-    "98584",
-    "98531",
-    "98512",
-    "98530",
-    "98556",
-    "98579",
-    "98557",
-    "98511",
-    "98507",
-    "98504",
-    "98599",
-    "98505",
-    "98508",
-    "98502",
-    "98506",
-    "98589",
-    "98576",
-    "98558",
-    "98540",
-    "98501",
-    "98513",
-    "98503",
-    "98509",
-    "98327",
-    "98433",
-    "98431",
-    "98516",
-    "98430",
-    "98439",
-    "98328",
-    "98580",
-    "98438",
-    "98338",
-    "98344",
-    "98387",
-    "98445",
-    "98446",
-    "98447",
-    "98448",
-    "98355",
-    "98533",
-    "98597",
-    "98348",
-    "98544",
-    "98522",
-    "98532",
-]
+# ---------------------------------------------------------------------------
+# ZIP code loading
+# ---------------------------------------------------------------------------
+ZIP_FILE = pathlib.Path(__file__).resolve().parents[1] / "toast_zips.txt"
+
+
+def load_zip_codes(path: pathlib.Path = ZIP_FILE) -> list[str]:
+    """Return a list of ZIP codes from ``path`` ignoring invalid lines."""
+    try:
+        with path.open("r", encoding="utf-8") as f:
+            codes: list[str] = []
+            for line in f:
+                code = line.strip()
+                if not code:
+                    continue
+                if is_valid_zip(code):
+                    codes.append(code)
+                else:
+                    logger.warning("Invalid ZIP code ignored: %s", code)
+            return codes
+    except FileNotFoundError:
+        logger.warning("ZIP code file not found: %s", path)
+        return []
+
+
+# List of ZIP codes for the Olympia, WA area loaded at import time
+TARGET_OLYMPIA_ZIPS: List[str] = load_zip_codes()
 
 # Geographic coordinates for Olympia, WA
 OLYMPIA_LAT: float = 47.0379

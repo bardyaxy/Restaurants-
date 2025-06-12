@@ -12,7 +12,7 @@ import pandas as pd
 
 from restaurants.utils import setup_logging
 from restaurants import loader
-from restaurants.config import GOOGLE_API_KEY, TARGET_OLYMPIA_ZIPS
+from restaurants.config import GOOGLE_API_KEY, load_zip_codes
 from restaurants.settings import FETCHERS
 
 # Aggregate store for fetched restaurant rows
@@ -42,7 +42,7 @@ def main(argv: list[str] | None = None) -> None:
     if args.zips:
         zip_list = [z.strip() for z in args.zips.split(",") if z.strip()]
     else:
-        zip_list = [str(z) for z in TARGET_OLYMPIA_ZIPS]
+        zip_list = load_zip_codes()
 
     for fetcher_cls, enabled in FETCHERS:
         if not enabled:
