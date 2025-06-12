@@ -84,8 +84,11 @@ comma‑separated string, with the first alias stored separately as
 ## Tests
 
 Ensure the `restaurants` package is importable before running the tests.
-All runtime dependencies live in `requirements.txt` while the testing tools
-are listed in `requirements-dev.txt`:
+Running `pytest` without installing dependencies will fail with missing-module
+errors. Install the runtime and development requirements first or simply run
+`./setup_tests.sh` which performs these steps automatically. All runtime
+dependencies live in `requirements.txt` while the testing tools are listed in
+`requirements-dev.txt`:
 
 ```bash
 pip install -e .
@@ -95,8 +98,8 @@ pytest
 
 The dev file includes `pytest`, `mypy` and type stubs. It also pulls in the
 packages from `requirements.txt` so a single install command prepares the
-environment. For convenience you can run `./setup_tests.sh` to perform these
-steps automatically.
+environment. For convenience you can run `./setup_tests.sh` which installs the
+requirements and runs the test suite automatically.
 
 Alternatively you can adjust `PYTHONPATH` so the `restaurants` imports in the
 tests resolve.
