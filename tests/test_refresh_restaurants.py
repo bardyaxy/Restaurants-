@@ -1,4 +1,5 @@
 import os
+import pandas as pd
 import pytest
 
 os.environ.setdefault("GOOGLE_API_KEY", "DUMMY")
@@ -173,4 +174,38 @@ def test_main_missing_api_key(monkeypatch):
     monkeypatch.setattr(rr, "FETCHERS", [])
     with pytest.raises(SystemExit):
         rr.main(["--zips", "98501"])
+
+
+def test_strict_zips_filters_rows(monkeypatch):
+    class DummyFetcher:
+        def fetch(self, zip_codes, **opts):
+            return [
+                {"Name": "A", "Zip Code": "98501"},
+                {"Name": "B", "Zip Code": "99999"},
+                {"Name": "C", "Zip Code": "98002"},
+            ]
+
+    monkeypatch.setattr(rr, "FETCHERS", [(DummyFetcher, True)])
+    monkeypatch.setattr(rr, "GOOGLE_API_KEY", "DUMMY")
+    monkeypatch.setattr(rr.loader, "load", lambda _p: None)
+    monkeypatch.setattr(rr.pd, "read_sql_query", lambda q, c: pd.DataFrame())
+
+    class DummyConn:
+        def close(self):
+            pass
+
+    monkeypatch.setattr(rr.sqlite3, "connect", lambda _p: DummyConn())
+
+    saved = []
+
+    def dummy_to_csv(self, path, index=False):
+        saved.append(self.copy())
+
+    monkeypatch.setattr(pd.DataFrame, "to_csv", dummy_to_csv)
+
+    rr.main(["--zips", "98501,98002", "--strict-zips"])
+
+    assert saved
+    df = saved[0]
+    assert list(df["Zip Code"]) == ["98501", "98002"]
 

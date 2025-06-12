@@ -42,6 +42,9 @@ list in `config.py`, which now includes many ZIP codes across the Olympia
 area. You can pass `--zips` with any additional ZIP codes (e.g. `--zips
 98502`). The script displays a progress bar via `tqdm` as it fetches Google
 results.
+Pass `--strict-zips` to drop any fetched rows whose `Zip Code` isn't in the
+provided list. This is useful when Google returns nearby results outside the
+desired ZIP codes.
 
 ## Optional GUI
 
