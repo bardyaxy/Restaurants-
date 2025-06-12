@@ -135,6 +135,16 @@ The map fetches `/static/restaurants.geojson` from the backend and displays the
 locations using Mapbox GL JS. Set `mapboxgl.accessToken` in `src/App.jsx` to your
 Mapbox token before running.
 
+You can also run both the backend refresh command and the React dev server at
+once using the root `package.json`:
+
+```bash
+npm start
+```
+
+This command launches `python -m restaurants.refresh_restaurants` and `npm
+--prefix frontend run dev` concurrently.
+
 ## Makefile
 
 A Makefile streamlines the workflow of fetching data and launching the frontend. Run:

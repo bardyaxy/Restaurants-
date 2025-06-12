@@ -1,0 +1,11 @@
+{
+  "name": "restaurants-root",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "start": "concurrently \"python -m restaurants.refresh_restaurants\" \"npm --prefix frontend run dev\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
