@@ -16,6 +16,7 @@ setup(
         "shapely",
         "pyyaml",
         "XlsxWriter",
+        "tqdm",
     ],
     entry_points={
         "console_scripts": [
