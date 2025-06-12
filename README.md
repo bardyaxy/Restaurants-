@@ -61,8 +61,8 @@ data and fetching Toast leads.
 
 Run `google_yelp_enrich.py` to supplement Google Places rows with Yelp ratings and
 categories. The script searches Yelp by the restaurant name and city and scans
- up to five candidates. `rapidfuzz.fuzz.token_set_ratio` picks the best match and
- only applies it when the score is at least 60 (configurable via `YELP_MATCH_THRESHOLD`). If no strong match is found and a
+up to five candidates. `rapidfuzz.fuzz.token_set_ratio` picks the best match and
+ only applies it when the score is at least 60. If no strong match is found and a
 phone number is available, the script falls back to a phone-based Yelp search.
 Rows without a valid match are left unchanged and marked as `FAIL`.
 
@@ -77,16 +77,6 @@ Each matched Yelp business includes a list of food categories. Their aliases
 (e.g. `pizza`, `italian`) are written to the `yelp_cuisines` column as a
 comma‑separated string, with the first alias stored separately as
 `yelp_primary_cuisine`.
-
-To fetch Yelp business data directly for a given ZIP code run:
-
-```bash
-python -m restaurants.yelp_fetch --zip 98501 --out output.json
-```
-`yelp_fetch.py` also reads the `YELP_ZIP` and `YELP_OUT` environment variables if
-present. When neither a command line argument nor `YELP_ZIP` is provided it
-falls back to `DEFAULT_ZIP`. The script writes
-`yelp_businesses_<zip>_<timestamp>.json` by default.
 
 ## Tests
 
