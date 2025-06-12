@@ -294,7 +294,7 @@ def test_strict_zips_filters_rows(monkeypatch):
 
     monkeypatch.setattr(pd.DataFrame, "to_csv", dummy_to_csv)
 
-    rr.main(["--zips", "98501,98002", "--strict-zips"])
+    rr.main(["--zips", "98501,98002", "--strict-zips", "--no-wa"])
 
     assert saved
     df = saved[0]
@@ -329,7 +329,7 @@ def test_refresh_main_social_links(monkeypatch):
 
     monkeypatch.setattr(pd.DataFrame, "to_csv", dummy_to_csv)
 
-    rr.main(["--zips", "98501", "--no-yelp"])
+    rr.main(["--zips", "98501", "--no-yelp", "--no-wa"])
 
     assert saved
     df = saved[0]
@@ -362,7 +362,7 @@ def test_refresh_main_runs_yelp(monkeypatch):
 
     monkeypatch.setattr(pd.DataFrame, "to_csv", lambda self, path, index=False: None)
 
-    rr.main(["--zips", "98501"])
+    rr.main(["--zips", "98501", "--no-wa"])
 
     assert called.get("yelp")
 
@@ -392,6 +392,6 @@ def test_refresh_main_no_yelp(monkeypatch):
 
     monkeypatch.setattr(pd.DataFrame, "to_csv", lambda self, path, index=False: None)
 
-    rr.main(["--zips", "98501", "--no-yelp"])
+    rr.main(["--zips", "98501", "--no-yelp", "--no-wa"])
 
     assert "yelp" not in called
