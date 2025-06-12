@@ -22,10 +22,11 @@ This project collects restaurant information for ZIP codes around Olympia, Washi
    ```bash
    pip install -e .
    ```
-2. Copy `.env.template` to `.env` and add your `GOOGLE_API_KEY`. Other keys
-   like `YELP_API_KEY` are optional but required for Yelp utilities. The `.env`
-   file is listed in `.gitignore` and should remain untracked. Configuration is
-   loaded via `config.py` which also exposes `DEFAULT_ZIP` (set to `98501`).
+2. Copy `.env.template` to `.env` and add your `GOOGLE_API_KEY` and
+   `MAPBOX_TOKEN`. Other keys like `YELP_API_KEY` are optional but required for
+   Yelp utilities. The `.env` file is listed in `.gitignore` and should remain
+   untracked. Configuration is loaded via `config.py` which also exposes
+   `DEFAULT_ZIP` (set to `98501`).
 3. Run the refresh command:
    ```bash
    refresh-restaurants
@@ -132,8 +133,15 @@ npm run dev
 ```
 
 The map fetches `/static/restaurants.geojson` from the backend and displays the
-locations using Mapbox GL JS. Set `mapboxgl.accessToken` in `src/App.jsx` to your
-Mapbox token before running.
+locations using Mapbox GL JS. Create `frontend/.env.local` with your Mapbox
+token:
+
+```bash
+VITE_MAPBOX_TOKEN=<your token>
+```
+
+`src/App.jsx` reads this value via `import.meta.env.VITE_MAPBOX_TOKEN` when the
+dev server runs.
 
 You can also run both the backend refresh command and the React dev server at
 once using the root `package.json`:
