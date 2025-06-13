@@ -1,8 +1,10 @@
+from typing import Optional
+
 import requests
 from bs4 import BeautifulSoup
 
 
-def extract_social_links(url: str) -> dict[str, str]:
+def extract_social_links(url: str) -> dict[str, Optional[str]]:
     try:
         resp = requests.get(url, timeout=10)
     except requests.RequestException:
