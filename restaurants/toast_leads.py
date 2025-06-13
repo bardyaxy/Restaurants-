@@ -10,6 +10,7 @@ import time
 import logging
 from datetime import datetime, timezone
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from pathlib import Path
 
 import requests
 from tqdm.auto import tqdm
@@ -83,7 +84,7 @@ def fetch_details(place_id: str, session: requests.Session) -> dict:
 # ---------------------------------------------------------------------------
 # 2.  Main workflow
 # ---------------------------------------------------------------------------
-ZIP_FILE = "toast_zips.txt"
+ZIP_FILE = str(Path(__file__).resolve().parents[1] / "toast_zips.txt")
 
 
 def load_zip_codes(path: str = ZIP_FILE) -> list[str]:
