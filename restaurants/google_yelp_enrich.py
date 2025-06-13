@@ -20,8 +20,12 @@ from rapidfuzz import fuzz
 from .config import GOOGLE_API_KEY, YELP_API_KEY
 from .network_utils import check_network
 
-GOOGLE_SEARCH_URL = "https://maps.googleapis.com/maps/api/place/textsearch/json"
-GOOGLE_DETAILS_URL = "https://maps.googleapis.com/maps/api/place/details/json"
+GOOGLE_SEARCH_URL = (
+    "https://maps.googleapis.com/maps/api/place/textsearch/json"
+)
+GOOGLE_DETAILS_URL = (
+    "https://maps.googleapis.com/maps/api/place/details/json"
+)
 YELP_SEARCH_URL = "https://api.yelp.com/v3/businesses/search"
 YELP_DETAILS_URL = "https://api.yelp.com/v3/businesses/{id}"
 YELP_REVIEWS_URL = "https://api.yelp.com/v3/businesses/{id}/reviews"
@@ -46,7 +50,9 @@ def search_google_place(
     return results[0] if results else {}
 
 
-def get_google_details(place_id: str, session: requests.Session) -> dict[str, Any]:
+def get_google_details(
+    place_id: str, session: requests.Session
+) -> dict[str, Any]:
     """Return phone details for a Google place."""
     params = {
         "place_id": place_id,
@@ -103,24 +109,34 @@ def search_yelp_business(
     return _pick_best_by_name(name, results)
 
 
-def search_yelp_by_phone(phone: str, session: requests.Session) -> dict[str, Any]:
+def search_yelp_by_phone(
+    phone: str, session: requests.Session
+) -> dict[str, Any]:
     """Return the first Yelp business for the given phone number."""
     if not phone:
         return {}
     digits = "".join(c for c in phone if c.isdigit() or c == "+")
-    resp = session.get(YELP_PHONE_SEARCH_URL, params={"phone": digits}, timeout=10)
+    resp = session.get(
+        YELP_PHONE_SEARCH_URL,
+        params={"phone": digits},
+        timeout=10,
+    )
     resp.raise_for_status()
     results = resp.json().get("businesses") or []
     return results[0] if results else {}
 
 
-def get_yelp_details(business_id: str, session: requests.Session) -> dict[str, Any]:
+def get_yelp_details(
+    business_id: str, session: requests.Session
+) -> dict[str, Any]:
     resp = session.get(YELP_DETAILS_URL.format(id=business_id), timeout=10)
     resp.raise_for_status()
     return resp.json()
 
 
-def get_yelp_reviews(business_id: str, session: requests.Session) -> dict[str, Any]:
+def get_yelp_reviews(
+    business_id: str, session: requests.Session
+) -> dict[str, Any]:
     resp = session.get(YELP_REVIEWS_URL.format(id=business_id), timeout=10)
     resp.raise_for_status()
     return resp.json()
@@ -193,7 +209,9 @@ def yelp_enrich_all() -> None:
     """Enrich all rows in ``dela.sqlite`` with Yelp info."""
     conn = sqlite3.connect(loader.DB_PATH)
     cur = conn.cursor()
-    rows = cur.execute("SELECT rowid, name, city, state FROM places").fetchall()
+    rows = cur.execute(
+        "SELECT rowid, name, city, state FROM places"
+    ).fetchall()
     for rowid, name, city, state in rows:
         loc = " ".join(p for p in (city, state) if p)
         data = enrich_restaurant(name, loc)
@@ -236,7 +254,10 @@ def main(argv: list[str] | None = None) -> None:
         description="Enrich a restaurant via Google and Yelp"
     )
     parser.add_argument("name", help="Restaurant name")
-    parser.add_argument("location", help="City/State or address for Google search")
+    parser.add_argument(
+        "location",
+        help="City/State or address for Google search",
+    )
     args = parser.parse_args(argv)
 
     logging.basicConfig(level=logging.INFO)

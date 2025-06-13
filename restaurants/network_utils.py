@@ -30,7 +30,10 @@ def check_network(
         try:
             timeout = int(timeout_env)
         except ValueError:
-            logging.error("Invalid NETWORK_TEST_TIMEOUT value: %s", timeout_env)
+            logging.error(
+                "Invalid NETWORK_TEST_TIMEOUT value: %s",
+                timeout_env,
+            )
 
     try:
         if method.upper() == "HEAD":

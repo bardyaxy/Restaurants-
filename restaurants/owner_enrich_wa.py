@@ -41,7 +41,9 @@ def _build_url(name: str) -> str:
     return f"{BASE}?$limit=1&$select={cols}&$where={where}"
 
 
-async def _hit(session: aiohttp.ClientSession, name: str) -> tuple[str | None, str | None]:
+async def _hit(
+    session: aiohttp.ClientSession, name: str
+) -> tuple[str | None, str | None]:
     cache = _cache_file("state", name)
     if cache.exists():
         data = json.loads(cache.read_text())
@@ -54,9 +56,15 @@ async def _hit(session: aiohttp.ClientSession, name: str) -> tuple[str | None, s
         cache.write_text(json.dumps(data))
     if data:
         rec = data[0]
-        owners = [rec.get(f"governing_people_{i}_full_name") for i in range(1, 6)]
+        owners = [
+            rec.get(f"governing_people_{i}_full_name")
+            for i in range(1, 6)
+        ]
         owners = [o for o in owners if o]
-        return rec.get("unified_business_identifier"), owners[0] if owners else None
+        return (
+            rec.get("unified_business_identifier"),
+            owners[0] if owners else None,
+        )
     return None, None
 
 
@@ -64,7 +72,10 @@ def _city_url(city: str, name: str) -> str:
     ds = CITY_DATASETS[city.upper()]
     safe = name.replace("'", "''")
     where = quote_plus(f"business_name ILIKE '{safe}'")
-    return f"https://data.{city.lower()}wa.gov/resource/{ds}.json?$limit=1&$where={where}"
+    return (
+        f"https://data.{city.lower()}wa.gov/resource/{ds}.json?$limit=1"
+        f"&$where={where}"
+    )
 
 
 def _extract_owner(rec: dict[str, str]) -> str | None:
@@ -75,7 +86,9 @@ def _extract_owner(rec: dict[str, str]) -> str | None:
     return None
 
 
-async def _hit_city(session: aiohttp.ClientSession, city: str, name: str) -> str | None:
+async def _hit_city(
+    session: aiohttp.ClientSession, city: str, name: str
+) -> str | None:
     cache = _cache_file(city.lower(), name)
     if cache.exists():
         data = json.loads(cache.read_text())
@@ -115,4 +128,3 @@ async def enrich_cities(df: pd.DataFrame) -> pd.DataFrame:
         owner_names = await asyncio.gather(*tasks)
     df["owner_name_city"] = owner_names
     return df
-

@@ -16,7 +16,11 @@ def test_prep_restaurants_functions(tmp_path, monkeypatch):
         }
     )
 
-    monkeypatch.setattr(glob, "glob", lambda pattern: [str(tmp_path / "input.csv")])
+    monkeypatch.setattr(
+        glob,
+        "glob",
+        lambda pattern: [str(tmp_path / "input.csv")],
+    )
     monkeypatch.setattr(pd, "read_csv", lambda path: df)
 
     captured = {}
@@ -40,10 +44,21 @@ def test_prep_restaurants_functions(tmp_path, monkeypatch):
 
     assert captured.get("csv") == "restaurants_prepped.tmp.csv"
     assert captured.get("xlsx") == "restaurants_prepped.tmp.xlsx"
-    assert ("restaurants_prepped.tmp.csv", "restaurants_prepped.csv") in captured.get("replace", [])
-    assert ("restaurants_prepped.tmp.xlsx", "restaurants_prepped.xlsx") in captured.get("replace", [])
-    assert pr.split_hours("Mon: 9-5; Tue: 10-6") == {"Mon": "9-5", "Tue": "10-6"}
-    assert pr._bx_distance(pd.Series({"lat": pr.BX_LAT, "lon": pr.BX_LON})) == 0
+    assert (
+        "restaurants_prepped.tmp.csv",
+        "restaurants_prepped.csv",
+    ) in captured.get("replace", [])
+    assert (
+        "restaurants_prepped.tmp.xlsx",
+        "restaurants_prepped.xlsx",
+    ) in captured.get("replace", [])
+    assert pr.split_hours("Mon: 9-5; Tue: 10-6") == {
+        "Mon": "9-5",
+        "Tue": "10-6",
+    }
+    assert (
+        pr._bx_distance(pd.Series({"lat": pr.BX_LAT, "lon": pr.BX_LON})) == 0
+    )
 
     series_dist = pr.haversine_miles_series(
         pd.Series([pr.BX_LAT]),

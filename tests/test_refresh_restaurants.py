@@ -1,12 +1,12 @@
 import os
 import pandas as pd
 import pytest
-
-os.environ.setdefault("GOOGLE_API_KEY", "DUMMY")
+import logging
 
 from restaurants import refresh_restaurants as rr
 from restaurants.fetchers import google_places as gp
-import logging
+
+os.environ.setdefault("GOOGLE_API_KEY", "DUMMY")
 
 
 def test_google_details_use_threadpool(monkeypatch):
@@ -365,7 +365,11 @@ def test_refresh_main_runs_yelp(monkeypatch):
         lambda: called.setdefault("yelp", True),
     )
 
-    monkeypatch.setattr(pd.DataFrame, "to_csv", lambda self, path, index=False: None)
+    monkeypatch.setattr(
+        pd.DataFrame,
+        "to_csv",
+        lambda self, path, index=False: None,
+    )
 
     rr.main(["--zips", "98501", "--no-wa"])
 
@@ -395,7 +399,11 @@ def test_refresh_main_no_yelp(monkeypatch):
         lambda: called.setdefault("yelp", True),
     )
 
-    monkeypatch.setattr(pd.DataFrame, "to_csv", lambda self, path, index=False: None)
+    monkeypatch.setattr(
+        pd.DataFrame,
+        "to_csv",
+        lambda self, path, index=False: None,
+    )
 
     rr.main(["--zips", "98501", "--no-yelp", "--no-wa"])
 
@@ -464,4 +472,6 @@ def test_fetch_logs_added(monkeypatch, caplog):
 
     caplog.set_level(logging.INFO)
     gp.GooglePlacesFetcher().fetch(["98501"])
-    assert any("98501 collected 1 places" in r.getMessage() for r in caplog.records)
+    assert any(
+        "98501 collected 1 places" in r.getMessage() for r in caplog.records
+    )

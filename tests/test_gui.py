@@ -1,4 +1,3 @@
-import types
 from restaurants import gui
 
 
@@ -47,7 +46,9 @@ def test_run_refresh(monkeypatch):
         lambda argv=None: called.setdefault("refresh", True),
     )
     monkeypatch.setattr(
-        gui.messagebox, "showinfo", lambda *a, **kw: called.setdefault("info", True)
+        gui.messagebox,
+        "showinfo",
+        lambda *a, **kw: called.setdefault("info", True),
     )
     gui.run_refresh()
     assert called == {"refresh": True, "info": True}
@@ -59,7 +60,9 @@ def test_run_toast(monkeypatch):
         gui.toast_leads, "main", lambda: called.setdefault("toast", True)
     )
     monkeypatch.setattr(
-        gui.messagebox, "showinfo", lambda *a, **kw: called.setdefault("info", True)
+        gui.messagebox,
+        "showinfo",
+        lambda *a, **kw: called.setdefault("info", True),
     )
     gui.run_toast()
     assert called == {"toast": True, "info": True}

@@ -34,4 +34,3 @@ def test_enrich_state(monkeypatch):
     res = asyncio.run(ow.enrich_state(df))
     assert res.loc[0, "ubi"] == "123"
     assert res.loc[0, "owner_name_state"] == "owner-Foo"
-

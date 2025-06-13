@@ -65,8 +65,10 @@ def fetch_details(place_id: str, session: requests.Session) -> dict:
         "key": GOOGLE_API_KEY,
         "place_id": place_id,
         "fields": (
-            "name,formatted_address,formatted_phone_number,international_phone_number,"
-            "website,geometry,price_level,rating,user_ratings_total,business_status"
+            "name,formatted_address,formatted_phone_number,"
+            "international_phone_number,"
+            "website,geometry,price_level,rating,"
+            "user_ratings_total,business_status"
         ),
     }
     try:
@@ -120,13 +122,20 @@ def main() -> None:
 
         for zip_code in tqdm(zip_list, desc="ZIP codes"):
             zip_start_count = len(new_rows)
-            params = {"key": GOOGLE_API_KEY, "query": f"restaurants in {zip_code} WA"}
+            params = {
+                "key": GOOGLE_API_KEY,
+                "query": f"restaurants in {zip_code} WA",
+            }
             page = 1
             while True:
                 print(f"→ {zip_code} page {page} requesting", flush=True)
                 try:
                     # (connect timeout, read timeout)
-                    resp = session.get(SEARCH_URL, params=params, timeout=(5, 10))
+                    resp = session.get(
+                        SEARCH_URL,
+                        params=params,
+                        timeout=(5, 10),
+                    )
                     resp.raise_for_status()
                     data = resp.json()
                     print(
@@ -147,7 +156,9 @@ def main() -> None:
                 with ThreadPoolExecutor(max_workers=8) as pool:
                     for result in data.get("results", []):
                         name = result.get("name", "")
-                        if any(block in name.lower() for block in CHAIN_BLOCKLIST):
+                        if any(
+                            block in name.lower() for block in CHAIN_BLOCKLIST
+                        ):
                             continue
                         pid = result.get("place_id")
                         if not pid or pid in seen_ids:
@@ -163,7 +174,9 @@ def main() -> None:
                         new_rows.append(
                             {
                                 "Business Name": details.get("name"),
-                                "Formatted Address": details.get("formatted_address"),
+                                "Formatted Address": details.get(
+                                    "formatted_address"
+                                ),
                                 "Place ID": pid,
                                 "Formatted Phone Number": details.get(
                                     "formatted_phone_number"
@@ -173,8 +186,12 @@ def main() -> None:
                                 ),
                                 "Website": details.get("website"),
                                 "Rating": details.get("rating"),
-                                "User Ratings Total": details.get("user_ratings_total"),
-                                "Business Status": details.get("business_status"),
+                                "User Ratings Total": details.get(
+                                    "user_ratings_total"
+                                ),
+                                "Business Status": details.get(
+                                    "business_status"
+                                ),
                                 "Price Level": details.get("price_level"),
                                 "lat": details.get("geometry", {})
                                 .get("location", {})
@@ -182,7 +199,9 @@ def main() -> None:
                                 "lon": details.get("geometry", {})
                                 .get("location", {})
                                 .get("lng"),
-                                "last_seen": datetime.now(timezone.utc).isoformat(),
+                                "last_seen": datetime.now(
+                                    timezone.utc
+                                ).isoformat(),
                             }
                         )
 

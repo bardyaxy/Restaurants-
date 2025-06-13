@@ -8,7 +8,6 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import requests
 from tqdm.auto import tqdm
 
-import pandas as pd
 
 from restaurants.utils import normalize_hours, haversine_miles
 from restaurants.config import GOOGLE_API_KEY, OLYMPIA_LAT, OLYMPIA_LON
@@ -32,7 +31,11 @@ class GooglePlacesFetcher(BaseFetcher):
         """Helper to fetch place details with retries."""
         for attempt in range(3):
             try:
-                resp = session.get(GOOGLE_DETAILS_URL, params=params, timeout=15)
+                resp = session.get(
+                    GOOGLE_DETAILS_URL,
+                    params=params,
+                    timeout=15,
+                )
                 resp.raise_for_status()
                 return resp.json().get("result", {})
             except Exception as exc:  # pragma: no cover - network errors
@@ -44,7 +47,9 @@ class GooglePlacesFetcher(BaseFetcher):
 
     def fetch(self, zip_codes: list[str], **opts) -> list[dict]:
         if not check_network():
-            logging.error("Network unavailable; cannot fetch Google Places data.")
+            logging.error(
+                "Network unavailable; cannot fetch Google Places data."
+            )
             raise SystemExit(1)
 
         results: list[dict] = []
@@ -52,7 +57,10 @@ class GooglePlacesFetcher(BaseFetcher):
             max_workers=8
         ) as executor:
             for zip_code in tqdm(zip_codes, desc="ZIP codes"):
-                logging.info("Fetching Google Places data for ZIP %s…", zip_code)
+                logging.info(
+                    "Fetching Google Places data for ZIP %s…",
+                    zip_code,
+                )
                 params = {
                     "key": GOOGLE_API_KEY,
                     "query": f"restaurants in {zip_code} WA",
@@ -61,7 +69,11 @@ class GooglePlacesFetcher(BaseFetcher):
                 page = 1
                 while True:
                     try:
-                        resp = session.get(GOOGLE_TEXT_URL, params=params, timeout=15)
+                        resp = session.get(
+                            GOOGLE_TEXT_URL,
+                            params=params,
+                            timeout=15,
+                        )
                         logging.info(
                             "%s page %s -> %s / %s",
                             zip_code,
@@ -77,25 +89,36 @@ class GooglePlacesFetcher(BaseFetcher):
                             page,
                             len(data.get("results", [])),
                         )
-                    except (requests.RequestException, json.JSONDecodeError) as exc:
+                    except (
+                        requests.RequestException,
+                        json.JSONDecodeError,
+                    ) as exc:
                         logging.error(
-                            "Error during Text Search for %s: %s", zip_code, exc
+                            "Error during Text Search for %s: %s",
+                            zip_code,
+                            exc,
                         )
                         raise SystemExit(1)
 
                     page_rows = []
                     for result in data.get("results", []):
                         name = result.get("name", "")
-                        if any(block in name.lower() for block in CHAIN_BLOCKLIST):
+                        if any(
+                            block in name.lower() for block in CHAIN_BLOCKLIST
+                        ):
                             continue
 
                         basic_row = {
                             "Name": name,
-                            "Formatted Address": result.get("formatted_address")
-                            or result.get("vicinity"),
+                            "Formatted Address": (
+                                result.get("formatted_address")
+                                or result.get("vicinity")
+                            ),
                             "Place ID": result.get("place_id"),
                             "Rating": result.get("rating"),
-                            "User Ratings Total": result.get("user_ratings_total"),
+                            "User Ratings Total": result.get(
+                                "user_ratings_total"
+                            ),
                             "Business Status": result.get("business_status"),
                             "lat": result["geometry"]["location"].get("lat"),
                             "lon": result["geometry"]["location"].get("lng"),
@@ -105,21 +128,32 @@ class GooglePlacesFetcher(BaseFetcher):
                             "key": GOOGLE_API_KEY,
                             "place_id": basic_row["Place ID"],
                             "fields": (
-                                "formatted_phone_number,international_phone_number,website,opening_hours,"
-                                "price_level,types,address_components,photo,geometry"
+                                "formatted_phone_number,"
+                                "international_phone_number,"
+                                "website,opening_hours,"
+                                "price_level,types,address_components,"
+                                "photo,geometry"
                             ),
                         }
                         page_rows.append((basic_row, det_params, name))
 
                     future_map = {
-                        executor.submit(self._fetch_details, session, dp, nm): br
+                        executor.submit(
+                            self._fetch_details,
+                            session,
+                            dp,
+                            nm,
+                        ): br
                         for br, dp, nm in page_rows
                     }
                     for fut in as_completed(list(future_map)):
                         basic_row = future_map[fut]
                         details = fut.result()
 
-                        location = details.get("geometry", {}).get("location", {})
+                        location = details.get("geometry", {}).get(
+                            "location",
+                            {},
+                        )
                         if (
                             location.get("lat") is not None
                             and location.get("lng") is not None
@@ -127,8 +161,11 @@ class GooglePlacesFetcher(BaseFetcher):
                             basic_row["lat"] = location["lat"]
                             basic_row["lon"] = location["lng"]
 
-                        opening_hours_raw = details.get("opening_hours", {}).get(
-                            "weekday_text", []
+                        opening_hours_raw = (
+                            details.get("opening_hours", {}).get(
+                                "weekday_text",
+                                [],
+                            )
                         )
                         photos = details.get("photos", [])
                         addr_comps = details.get("address_components", [])
@@ -154,7 +191,9 @@ class GooglePlacesFetcher(BaseFetcher):
                                     return comp.get("long_name")
                             return ""
 
-                        street = f"{_ac('street_number')} {_ac('route')}".strip()
+                        street = (
+                            f"{_ac('street_number')} {_ac('route')}"
+                        ).strip()
 
                         enriched = {
                             "Formatted Phone Number": details.get(
@@ -165,7 +204,9 @@ class GooglePlacesFetcher(BaseFetcher):
                             ),
                             "Website": details.get("website"),
                             "Opening Hours": (
-                                "; ".join(f"{d}: {t}" for d, t in hours_dict.items())
+                                "; ".join(
+                                    f"{d}: {t}" for d, t in hours_dict.items()
+                                )
                                 if hours_dict
                                 else None
                             ),
@@ -173,7 +214,11 @@ class GooglePlacesFetcher(BaseFetcher):
                             "Types": ",".join(details.get("types", [])),
                             "Category": (details.get("types") or [None])[0],
                             "Photo Reference": (
-                                photos[0].get("photo_reference") if photos else None
+                                photos[0].get(
+                                    "photo_reference"
+                                )
+                                if photos
+                                else None
                             ),
                             "Street Address": street,
                             "City": _ac("locality"),
@@ -196,7 +241,9 @@ class GooglePlacesFetcher(BaseFetcher):
                                 **basic_row,
                                 **enriched,
                                 "source": "google_places_smb",
-                                "last_seen": datetime.now(timezone.utc).isoformat(),
+                                "last_seen": datetime.now(
+                                    timezone.utc
+                                ).isoformat(),
                             }
                         )
 

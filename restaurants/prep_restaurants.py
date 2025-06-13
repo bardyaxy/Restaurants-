@@ -15,7 +15,11 @@ try:
         setup_logging,
     )
 except ImportError:  # pragma: no cover - fallback for running as script
-    from utils import haversine_miles, haversine_miles_series, setup_logging  # type: ignore
+    from utils import (
+        haversine_miles,
+        haversine_miles_series,
+        setup_logging,
+    )  # type: ignore
 
 
 BX_LAT, BX_LON = 47.6154255, -122.2035954  # Bellevue Square Mall
@@ -57,7 +61,11 @@ def main(argv: list[str] | None = None) -> None:
     # ------------------------------------------------------------------
     # 1.  UTF-8 cleanup (narrow no-break space)
     # ------------------------------------------------------------------
-    df["Opening Hours"] = df["Opening Hours"].str.replace("\u202f", " ", regex=False)
+    df["Opening Hours"] = df["Opening Hours"].str.replace(
+        "\u202f",
+        " ",
+        regex=False,
+    )
 
     # ------------------------------------------------------------------
     # 2.  Split opening hours into a dict per row
@@ -80,7 +88,9 @@ def main(argv: list[str] | None = None) -> None:
     # ------------------------------------------------------------------
     # 5.  Quick lead-quality flags
     # ------------------------------------------------------------------
-    df["Has Phone"] = df["Formatted Phone Number"].str.len().gt(0).fillna(False)
+    df["Has Phone"] = (
+        df["Formatted Phone Number"].str.len().gt(0).fillna(False)
+    )
     df["Has Website"] = df["Website"].str.len().gt(0).fillna(False)
 
     # ------------------------------------------------------------------
