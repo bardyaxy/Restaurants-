@@ -57,6 +57,7 @@ class GooglePlacesFetcher(BaseFetcher):
                     "key": GOOGLE_API_KEY,
                     "query": f"restaurants in {zip_code} WA",
                 }
+                start_len = len(results)
                 page = 1
                 while True:
                     try:
@@ -70,6 +71,12 @@ class GooglePlacesFetcher(BaseFetcher):
                         )
                         resp.raise_for_status()
                         data = resp.json()
+                        logging.info(
+                            "%s page %s had %d results",
+                            zip_code,
+                            page,
+                            len(data.get("results", [])),
+                        )
                     except (requests.RequestException, json.JSONDecodeError) as exc:
                         logging.error(
                             "Error during Text Search for %s: %s", zip_code, exc
@@ -113,7 +120,10 @@ class GooglePlacesFetcher(BaseFetcher):
                         details = fut.result()
 
                         location = details.get("geometry", {}).get("location", {})
-                        if location.get("lat") is not None and location.get("lng") is not None:
+                        if (
+                            location.get("lat") is not None
+                            and location.get("lng") is not None
+                        ):
                             basic_row["lat"] = location["lat"]
                             basic_row["lon"] = location["lng"]
 
@@ -196,6 +206,9 @@ class GooglePlacesFetcher(BaseFetcher):
                     time.sleep(2)
                     params = {"key": GOOGLE_API_KEY, "pagetoken": next_token}
                     page += 1
+
+                added = len(results) - start_len
+                logging.info("%s collected %d places", zip_code, added)
 
         logging.info("Collected %s SMB rows with enrichment.", len(results))
         return results

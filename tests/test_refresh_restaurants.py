@@ -6,6 +6,7 @@ os.environ.setdefault("GOOGLE_API_KEY", "DUMMY")
 
 from restaurants import refresh_restaurants as rr
 from restaurants.fetchers import google_places as gp
+import logging
 
 
 def test_google_details_use_threadpool(monkeypatch):
@@ -317,10 +318,14 @@ def test_refresh_main_social_links(monkeypatch):
             pass
 
     monkeypatch.setattr(rr.sqlite3, "connect", lambda _p: DummyConn())
-    monkeypatch.setattr(rr, "extract_social_links", lambda url: {
-        "facebook_url": "fb",
-        "instagram_url": "ig",
-    })
+    monkeypatch.setattr(
+        rr,
+        "extract_social_links",
+        lambda url: {
+            "facebook_url": "fb",
+            "instagram_url": "ig",
+        },
+    )
 
     saved = []
 
@@ -395,3 +400,68 @@ def test_refresh_main_no_yelp(monkeypatch):
     rr.main(["--zips", "98501", "--no-yelp", "--no-wa"])
 
     assert "yelp" not in called
+
+
+def test_fetch_logs_added(monkeypatch, caplog):
+    monkeypatch.setattr(gp, "check_network", lambda: True)
+
+    class DummyResp:
+        def __init__(self, data):
+            self._data = data
+            self.status_code = 200
+
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return self._data
+
+    def dummy_get(self, url, params=None, timeout=None):
+        if "textsearch" in url:
+            return DummyResp(
+                {
+                    "results": [
+                        {
+                            "name": "Cafe",
+                            "formatted_address": "addr1",
+                            "place_id": "p1",
+                            "rating": 4.0,
+                            "user_ratings_total": 1,
+                            "business_status": "OP",
+                            "geometry": {"location": {"lat": 1, "lng": 2}},
+                        }
+                    ]
+                }
+            )
+        elif "details" in url:
+            return DummyResp({"result": {}})
+        raise AssertionError("unexpected url " + url)
+
+    monkeypatch.setattr(gp.requests.sessions.Session, "get", dummy_get)
+
+    class DummyFuture:
+        def __init__(self, res):
+            self._res = res
+
+        def result(self):
+            return self._res
+
+    class DummyExecutor:
+        def __init__(self, max_workers=None):
+            pass
+
+        def submit(self, fn, *args, **kw):
+            return DummyFuture(fn(*args, **kw))
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            pass
+
+    monkeypatch.setattr(gp, "ThreadPoolExecutor", DummyExecutor)
+    monkeypatch.setattr(gp, "as_completed", lambda it: it)
+
+    caplog.set_level(logging.INFO)
+    gp.GooglePlacesFetcher().fetch(["98501"])
+    assert any("98501 collected 1 places" in r.getMessage() for r in caplog.records)
