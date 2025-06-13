@@ -125,6 +125,10 @@ pip install -r requirements-dev.txt
 pytest
 ```
 
+Run `pytest -s` to see logging and progress messages during the suite. The
+`-s` flag disables output capturing so `tqdm` progress bars and other prints are
+visible.
+
 The dev file includes `pytest`, `mypy` and type stubs. It also pulls in the
 packages from `requirements.txt` so a single install command prepares the
 environment. For convenience you can run `./setup_tests.sh` which installs the
