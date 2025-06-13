@@ -30,7 +30,8 @@ def _cache_file(prefix: str, name: str) -> pathlib.Path:
 
 
 def _build_url(name: str) -> str:
-    where = quote_plus(f"business_name ILIKE '{name.replace("'", "''")}'")
+    safe = name.replace("'", "''")
+    where = quote_plus(f"business_name ILIKE '{safe}'")
     cols = (
         "business_name,unified_business_identifier,"
         "governing_people_1_full_name,governing_people_2_full_name,"
@@ -61,7 +62,8 @@ async def _hit(session: aiohttp.ClientSession, name: str) -> tuple[str | None, s
 
 def _city_url(city: str, name: str) -> str:
     ds = CITY_DATASETS[city.upper()]
-    where = quote_plus(f"business_name ILIKE '{name.replace("'", "''")}'")
+    safe = name.replace("'", "''")
+    where = quote_plus(f"business_name ILIKE '{safe}'")
     return f"https://data.{city.lower()}wa.gov/resource/{ds}.json?$limit=1&$where={where}"
 
 
