@@ -29,7 +29,10 @@ def main(argv: list[str] | None = None) -> None:
         props = row.drop(labels=["lat", "lon"]).to_dict()
         feature = {
             "type": "Feature",
-            "geometry": {"type": "Point", "coordinates": [float(lon), float(lat)]},
+            "geometry": {
+                "type": "Point",
+                "coordinates": [float(lon), float(lat)],
+            },
             "properties": props,
         }
         features.append(feature)

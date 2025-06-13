@@ -234,7 +234,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Load a Google-Places CSV into dela.sqlite"
     )
-    parser.add_argument("csv", help="Path to CSV produced by refresh_restaurants.py")
+    parser.add_argument(
+        "csv",
+        help="Path to CSV produced by refresh_restaurants.py",
+    )
     args = parser.parse_args()
 
     csv_path = pathlib.Path(args.csv).expanduser()

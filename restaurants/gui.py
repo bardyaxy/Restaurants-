@@ -42,7 +42,11 @@ def make_gui() -> tk.Tk:
     frame = tk.Frame(root, padx=20, pady=20)
     frame.pack()
 
-    btn_refresh = tk.Button(frame, text="Refresh Restaurants", command=run_refresh)
+    btn_refresh = tk.Button(
+        frame,
+        text="Refresh Restaurants",
+        command=run_refresh,
+    )
     btn_refresh.pack(fill="x")
 
     btn_toast = tk.Button(frame, text="Fetch Toast Leads", command=run_toast)

@@ -1,5 +1,4 @@
 import restaurants.toast_leads as tl
-import pathlib
 
 
 def test_load_seen_ids_missing(tmp_path):
@@ -71,7 +70,12 @@ def test_toast_leads_chain_blocklist(monkeypatch, tmp_path):
 
     def dummy_open(file, mode="r", newline="", encoding=None):
         if str(file).startswith("olympia_toast_smb_") and "w" in mode:
-            return open_orig(dummy_out, mode, newline=newline, encoding=encoding)
+            return open_orig(
+                dummy_out,
+                mode,
+                newline=newline,
+                encoding=encoding,
+            )
         return open_orig(file, mode, newline=newline, encoding=encoding)
 
     monkeypatch.setattr("builtins.open", dummy_open)

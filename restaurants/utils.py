@@ -6,7 +6,9 @@ import logging
 import numpy as np
 import pandas as pd
 
-THIN_SPACE_CHARS = "\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a"
+THIN_SPACE_CHARS = (
+    "\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a"
+)
 
 # Basic US ZIP or ZIP+4 format
 ZIP_RE = re.compile(r"^\d{5}(?:-\d{4})?$")
@@ -93,8 +95,8 @@ def normalize_hours(hours_dict: dict) -> dict:
 def setup_logging(level: int = logging.INFO) -> None:
     """Configure logging to stdout or a file.
 
-    If the ``LOG_FILE`` environment variable is set, log messages are written to
-    that file. Otherwise, logs are sent to standard output.
+    If the ``LOG_FILE`` environment variable is set, log messages are written
+    to that file. Otherwise, logs are sent to standard output.
     """
 
     log_file = os.getenv("LOG_FILE")

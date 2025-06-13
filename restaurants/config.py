@@ -1,21 +1,21 @@
-"""Central configuration for API keys and constants used in the Olympia services project.
+"""Configuration for API keys and constants in the Olympia services project.
 
-Loads API keys from environment variables and defines location-based constants for
-Olympia, WA, including ZIP codes and geographic coordinates.
+Loads API keys from environment variables and defines location-based constants
+for Olympia, WA, including ZIP codes and geographic coordinates.
 """
 
 from __future__ import annotations
 
+import logging
 import os
 import pathlib
-from typing import Any, List, IO
-import logging
+from typing import IO, List
+
+from restaurants.utils import is_valid_zip
 
 # Set up basic logging to warn about configuration issues
 logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
-
-from restaurants.utils import is_valid_zip
 
 # Load environment variables from .env file if python-dotenv is available
 try:

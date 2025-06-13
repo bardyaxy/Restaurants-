@@ -82,7 +82,8 @@ def test_ensure_db_updates_partial_schema(tmp_path, monkeypatch):
     tmp_db = tmp_path / "dela.sqlite"
     conn = sqlite3.connect(tmp_db)
     conn.execute(
-        "CREATE TABLE places (place_id TEXT PRIMARY KEY, name TEXT, category TEXT)"
+        "CREATE TABLE places (place_id TEXT PRIMARY KEY, name TEXT,"
+        " category TEXT)"
     )
     conn.close()
 
@@ -137,7 +138,8 @@ def test_load_yelp_json(tmp_path, monkeypatch):
 
     conn = sqlite3.connect(tmp_db)
     row = conn.execute(
-        "SELECT name, city, yelp_rating, yelp_cuisines, source FROM places WHERE place_id='y1'"
+        "SELECT name, city, yelp_rating, yelp_cuisines, source"
+        " FROM places WHERE place_id='y1'"
     ).fetchone()
     conn.close()
     assert row == ("YelpFoo", "Olympia", 4.0, "thai", "yelp_fetch")

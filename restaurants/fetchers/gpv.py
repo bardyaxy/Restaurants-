@@ -29,4 +29,3 @@ class GpvFetcher(BaseFetcher):
         df = df[["Place ID", "GPV Projection"]].copy()
         df["source"] = "gpv_projection"
         return df.to_dict(orient="records")
-

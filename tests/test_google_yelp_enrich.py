@@ -88,7 +88,9 @@ def test_enrich_restaurant_phone_fallback(monkeypatch):
                 }
             )
         elif url == gye.GOOGLE_DETAILS_URL:
-            return DummyResp({"result": {"formatted_phone_number": "+1-555-111-2222"}})
+            return DummyResp(
+                {"result": {"formatted_phone_number": "+1-555-111-2222"}}
+            )
         elif url == gye.YELP_SEARCH_URL:
             return DummyResp({"businesses": []})
         elif url == gye.YELP_PHONE_SEARCH_URL:
@@ -116,7 +118,8 @@ def test_yelp_enrich_all_updates_db(tmp_path, monkeypatch):
     gye.loader.ensure_db()
     conn = sqlite3.connect(tmp_db)
     conn.execute(
-        "INSERT INTO places (place_id, name, city, state) VALUES ('p1','Foo','Olympia','WA')"
+        "INSERT INTO places (place_id, name, city, state)"
+        " VALUES ('p1','Foo','Olympia','WA')"
     )
     conn.commit()
     conn.close()
@@ -126,7 +129,9 @@ def test_yelp_enrich_all_updates_db(tmp_path, monkeypatch):
             "google": {},
             "yelp": {
                 "business": {},
-                "details": {"categories": [{"alias": "thai", "title": "Thai"}]},
+                "details": {
+                    "categories": [{"alias": "thai", "title": "Thai"}]
+                },
                 "reviews": {},
                 "summary": {
                     "rating": 4.5,
@@ -142,7 +147,9 @@ def test_yelp_enrich_all_updates_db(tmp_path, monkeypatch):
 
     conn = sqlite3.connect(tmp_db)
     row = conn.execute(
-        "SELECT yelp_rating, yelp_reviews, yelp_price_tier, yelp_cuisines, yelp_primary_cuisine, yelp_category_titles, yelp_status FROM places WHERE place_id='p1'"
+        "SELECT yelp_rating, yelp_reviews, yelp_price_tier, yelp_cuisines,"
+        " yelp_primary_cuisine, yelp_category_titles, yelp_status"
+        " FROM places WHERE place_id='p1'"
     ).fetchone()
     conn.close()
     assert row == (4.5, 7, "$$", "thai", "thai", "Thai", "open")
