@@ -1,7 +1,21 @@
 import asyncio
 import pandas as pd
+import pytest
+import shutil
 
 from restaurants import owner_enrich_wa as ow
+
+
+@pytest.fixture(autouse=True)
+def patch_cache_dir(monkeypatch, tmp_path):
+    old = ow.CACHE_DIR
+    if old.exists():
+        shutil.rmtree(old)
+    new_dir = tmp_path / "cache"
+    new_dir.mkdir()
+    monkeypatch.setattr(ow, "CACHE_DIR", new_dir)
+    yield
+    shutil.rmtree(new_dir, ignore_errors=True)
 
 
 def test_build_url_quotes():

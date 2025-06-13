@@ -65,6 +65,17 @@ def test_toast_leads_chain_blocklist(monkeypatch, tmp_path):
 
     monkeypatch.setattr(tl.csv, "DictWriter", CapturingWriter)
 
+    dummy_out = tmp_path / "out.csv"
+
+    open_orig = open
+
+    def dummy_open(file, mode="r", newline="", encoding=None):
+        if str(file).startswith("olympia_toast_smb_") and "w" in mode:
+            return open_orig(dummy_out, mode, newline=newline, encoding=encoding)
+        return open_orig(file, mode, newline=newline, encoding=encoding)
+
+    monkeypatch.setattr("builtins.open", dummy_open)
+
     class DummyResp:
         def __init__(self, data):
             self._data = data
